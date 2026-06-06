@@ -9,10 +9,10 @@ deployment:
     - /bin/find $APPPATH -mindepth 1 -maxdepth 1 ! -name writable -exec rm -rf {} \;
     - /bin/find $PUBLICPATH -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
     - /bin/cp -R app $APPPATH
-    - /bin/cp -R vendor $APPPATH
     - /bin/cp -R writable $APPPATH
-    - /bin/cp -R public/. $PUBLICPATH
     - /bin/cp composer.json $APPPATH
     - /bin/cp composer.lock $APPPATH
     - /bin/cp spark $APPPATH
     - /bin/cp env $APPPATH/.env
+    - /bin/sh -c 'if [ -x /opt/cpanel/composer/bin/composer ]; then /opt/cpanel/composer/bin/composer install --no-dev --working-dir="$APPPATH"; else composer install --no-dev --working-dir="$APPPATH"; fi'
+    - /bin/cp -R public/. $PUBLICPATH

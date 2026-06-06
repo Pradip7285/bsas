@@ -1,0 +1,18 @@
+# Deploy app code outside `public_html`, and copy the contents of `public/`
+# into the subdirectory document root.
+deployment:
+  tasks:
+    - export APPPATH=/home/ixbwdbzy/bsas
+    - export PUBLICPATH=/home/ixbwdbzy/public_html/bsas
+    - /bin/mkdir -p $APPPATH
+    - /bin/mkdir -p $PUBLICPATH
+    - /bin/find $APPPATH -mindepth 1 -maxdepth 1 ! -name writable -exec rm -rf {} \;
+    - /bin/find $PUBLICPATH -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+    - /bin/cp -R app $APPPATH
+    - /bin/cp -R vendor $APPPATH
+    - /bin/cp -R writable $APPPATH
+    - /bin/cp -R public/. $PUBLICPATH
+    - /bin/cp composer.json $APPPATH
+    - /bin/cp composer.lock $APPPATH
+    - /bin/cp spark $APPPATH
+    - /bin/cp env $APPPATH/.env

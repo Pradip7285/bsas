@@ -1,0 +1,13 @@
+/.claude/
+/.env
+/vendor/
+/writable/cache/
+/writable/debugbar/
+/writable/logs/
+/writable/session/
+/writable/uploads/
+/writable/tests/
+/writable/*.sqlite
+/.DS_Store
+/Thumbs.db
+~$*

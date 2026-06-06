@@ -1,0 +1,1231 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Libraries\SimpleSpreadsheetReader;
+use App\Models\BrochureLeadModel;
+use App\Models\CategoryModel;
+use App\Models\ProductModel;
+use App\Models\QuoteRequestItemModel;
+use App\Models\QuoteRequestModel;
+use CodeIgniter\Controller;
+use CodeIgniter\HTTP\Files\UploadedFile;
+
+class AdminController extends Controller
+{
+    public function login()
+    {
+        if ($this->isAuthenticated()) {
+            return redirect()->to('/admin');
+        }
+
+        return view('admin/login', [
+            'errors' => session()->getFlashdata('errors') ?? [],
+            'message' => session()->getFlashdata('message'),
+        ]);
+    }
+
+    public function attemptLogin()
+    {
+        $rules = [
+            'username' => 'required',
+            'password' => 'required',
+        ];
+
+        if (! $this->validateData($this->request->getPost(), $rules)) {
+            return redirect()->to('/admin/login')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $username = trim((string) $this->request->getPost('username'));
+        $password = (string) $this->request->getPost('password');
+        $expectedUsername = (string) env('admin.username');
+        $expectedPasswordHash = (string) env('admin.passwordHash');
+
+        if ($expectedUsername === '' || $expectedPasswordHash === '') {
+            return redirect()->to('/admin/login')->with('message', 'Admin credentials are not configured in the environment.');
+        }
+
+        if (! hash_equals($expectedUsername, $username) || ! password_verify($password, $expectedPasswordHash)) {
+            return redirect()->to('/admin/login')->withInput()->with('errors', ['Invalid admin credentials.']);
+        }
+
+        session()->set('is_admin_authenticated', true);
+        session()->set('admin_username', $username);
+
+        return redirect()->to('/admin');
+    }
+
+    public function logout()
+    {
+        session()->remove(['is_admin_authenticated', 'admin_username']);
+
+        return redirect()->to('/admin/login')->with('message', 'You have been signed out.');
+    }
+
+    public function index()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $productSearch = trim((string) $this->request->getGet('q'));
+        $status = trim((string) $this->request->getGet('status'));
+        $category = trim((string) $this->request->getGet('category'));
+
+        $builder = $this->products()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC');
+
+        if ($productSearch !== '') {
+            $builder->groupStart()
+                ->like('name', $productSearch)
+                ->orLike('sku', $productSearch)
+                ->orLike('category', $productSearch)
+                ->groupEnd();
+        }
+
+        if ($status === 'active') {
+            $builder->where('is_active', 1);
+        } elseif ($status === 'hidden') {
+            $builder->where('is_active', 0);
+        } else {
+            $status = '';
+        }
+
+        if ($category !== '') {
+            $builder->where('category', $category);
+        }
+
+        $recentQuotes = $this->quoteRequests()->orderBy('created_at', 'DESC')->findAll(8);
+        $recentQuoteIds = array_map(static fn(array $quote): int => (int) $quote['id'], $recentQuotes);
+        $recentQuoteItems = $recentQuoteIds === []
+            ? []
+            : $this->quoteItems()->whereIn('quote_request_id', $recentQuoteIds)->orderBy('created_at', 'ASC')->findAll();
+
+        return view('admin/dashboard', [
+            'products' => $builder->findAll(),
+            'quotes' => $recentQuotes,
+            'quoteItemsByRequest' => $this->groupQuoteItemsByRequest($recentQuoteItems),
+            'brochureLeads' => $this->brochureLeads()->orderBy('created_at', 'DESC')->findAll(8),
+            'productSearch' => $productSearch,
+            'activeStatus' => $status,
+            'activeCategory' => $category,
+            'categories' => $this->products()->categories(),
+            'stats' => $this->dashboardStats(),
+            'catalogAudit' => $this->catalogAudit(),
+            'categoryBreakdown' => $this->productCategoryBreakdown(),
+            'quoteBreakdown' => $this->quoteRequestBreakdown(),
+            'performanceSnapshot' => $this->performanceSnapshot(),
+            'activityTimeline' => $this->activityTimeline(),
+            'topRequestedProducts' => $this->topRequestedProducts(),
+            'sourcePageBreakdown' => $this->sourcePageBreakdown(),
+            'importSummary' => session()->getFlashdata('importSummary'),
+            'errors' => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function leads()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $quoteType = trim((string) $this->request->getGet('type'));
+        $leadSearch = trim((string) $this->request->getGet('q'));
+
+        $builder = $this->quoteRequests()->orderBy('created_at', 'DESC');
+
+        if ($quoteType !== '') {
+            $builder->where('request_type', $quoteType);
+        }
+
+        if ($leadSearch !== '') {
+            $builder->groupStart()
+                ->like('name', $leadSearch)
+                ->orLike('company', $leadSearch)
+                ->orLike('phone', $leadSearch)
+                ->orLike('email', $leadSearch)
+                ->orLike('concern', $leadSearch)
+                ->groupEnd();
+        }
+
+        $quotes = $builder->findAll();
+        $quoteIds = array_map(static fn(array $quote): int => (int) $quote['id'], $quotes);
+        $quoteItems = $quoteIds === []
+            ? []
+            : $this->quoteItems()->whereIn('quote_request_id', $quoteIds)->orderBy('created_at', 'ASC')->findAll();
+
+        return view('admin/leads', [
+            'quotes' => $quotes,
+            'quoteItemsByRequest' => $this->groupQuoteItemsByRequest($quoteItems),
+            'brochureLeads' => $this->brochureLeads()->orderBy('created_at', 'DESC')->findAll(),
+            'quoteType' => $quoteType,
+            'leadSearch' => $leadSearch,
+            'quoteBreakdown' => $this->quoteRequestBreakdown(),
+        ]);
+    }
+
+    /* ── Products list ───────────────────────────────────────── */
+
+    public function productsList()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $search   = trim((string) $this->request->getGet('q'));
+        $status   = trim((string) $this->request->getGet('status'));
+        $category = trim((string) $this->request->getGet('category'));
+
+        $builder = $this->products()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC');
+
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('name', $search)
+                ->orLike('sku', $search)
+                ->orLike('category', $search)
+                ->orLike('description', $search)
+                ->groupEnd();
+        }
+
+        if ($status === 'active') {
+            $builder->where('is_active', 1);
+        } elseif ($status === 'hidden') {
+            $builder->where('is_active', 0);
+        } else {
+            $status = '';
+        }
+
+        if ($category !== '') {
+            $builder->where('category', $category);
+        }
+
+        return view('admin/products', [
+            'products'       => $builder->findAll(),
+            'categories'     => $this->loadCategories(),
+            'productSearch'  => $search,
+            'activeStatus'   => $status,
+            'activeCategory' => $category,
+            'stats'          => $this->dashboardStats(),
+            'catalogAudit'   => $this->catalogAudit(),
+        ]);
+    }
+
+    /* ── Categories ──────────────────────────────────────────── */
+
+    public function categories()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $counts = $this->categoryModel()->productCounts();
+
+        return view('admin/categories', [
+            'categories'    => $this->categoryModel()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->findAll(),
+            'productCounts' => $counts,
+            'errors'        => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createCategory()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['error' => 'Category name is required.'])->setStatusCode(422);
+            }
+
+            return redirect()->to('/admin/categories')->with('errors', ['Category name is required.']);
+        }
+
+        $existing = $this->categoryModel()->findByName($name);
+
+        if ($existing) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['id' => $existing['id'], 'name' => $existing['name'], 'exists' => true]);
+            }
+
+            return redirect()->to('/admin/categories')->with('errors', ['A category with this name already exists.']);
+        }
+
+        $slug = $this->categoryModel()->uniqueSlug(url_title($name, '-', true));
+        $this->categoryModel()->insert([
+            'name'       => $name,
+            'slug'       => $slug,
+            'is_active'  => 1,
+            'sort_order' => (int) ($this->request->getPost('sort_order') ?: 0),
+            'description'=> trim((string) $this->request->getPost('description')),
+        ]);
+
+        $newId = (int) $this->categoryModel()->getInsertID();
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['id' => $newId, 'name' => $name]);
+        }
+
+        session()->setFlashdata('success', 'Category "' . $name . '" created.');
+
+        return redirect()->to('/admin/categories');
+    }
+
+    public function updateCategory(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $cat = $this->categoryModel()->find($id);
+
+        if (! $cat) {
+            return redirect()->to('/admin/categories')->with('errors', ['Category not found.']);
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            return redirect()->to('/admin/categories')->with('errors', ['Category name is required.']);
+        }
+
+        $slug = $this->categoryModel()->uniqueSlug(url_title($name, '-', true), $id);
+
+        $this->categoryModel()->update($id, [
+            'name'        => $name,
+            'slug'        => $slug,
+            'description' => trim((string) $this->request->getPost('description')),
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active'   => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ]);
+
+        // Keep the denormalized category string in sync for all bound products.
+        $this->products()->where('category_id', $id)->set(['category' => $name])->update();
+
+        session()->setFlashdata('success', 'Category updated. Product display names have been re-synced.');
+
+        return redirect()->to('/admin/categories');
+    }
+
+    public function deleteCategory(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $cat = $this->categoryModel()->find($id);
+
+        if (! $cat) {
+            return redirect()->to('/admin/categories')->with('errors', ['Category not found.']);
+        }
+
+        // Detach products rather than blocking deletion
+        $this->products()->where('category_id', $id)->set(['category_id' => null])->update();
+
+        $this->categoryModel()->delete($id);
+        session()->setFlashdata('success', 'Category deleted. Products using it have been detached.');
+
+        return redirect()->to('/admin/categories');
+    }
+
+    /* ── SKU suggestion (AJAX) ───────────────────────────────── */
+
+    public function suggestSku()
+    {
+        if (! $this->isAuthenticated()) {
+            return $this->response->setJSON(['error' => 'Unauthorized'])->setStatusCode(401);
+        }
+
+        $categoryId = (int) $this->request->getGet('category_id');
+        $catName    = '';
+
+        if ($categoryId > 0) {
+            $cat     = $this->categoryModel()->find($categoryId);
+            $catName = $cat ? (string) $cat['name'] : '';
+        }
+
+        $sku = $this->products()->nextSkuForPrefix($catName ?: 'GEN');
+
+        return $this->response->setJSON(['sku' => $sku]);
+    }
+
+    /* ── Products ──────────────────────────────────────────────── */
+
+    public function newProduct()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        return view('admin/product-form', [
+            'product'    => null,
+            'categories' => $this->loadCategories(),
+            'errors'     => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createProduct()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $payload = $this->validatedPayload();
+
+        if ($payload === null) {
+            return redirect()->to('/admin/products/new')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->products()->insert($payload);
+        session()->setFlashdata('success', 'Product created.');
+
+        return redirect()->to('/admin/products');
+    }
+
+    public function editProduct(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $product = $this->products()->find($id);
+
+        if (! $product) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        // Resolve category_id from the category string for products that pre-date
+        // the categories migration (category_id is null but category string exists).
+        if (empty($product['category_id']) && ! empty($product['category'])) {
+            try {
+                $cat = $this->categoryModel()->findByName((string) $product['category']);
+                if ($cat) {
+                    $product['category_id'] = (int) $cat['id'];
+                }
+            } catch (\Throwable $e) {
+                // categories table not migrated yet — leave category_id null
+            }
+        }
+
+        return view('admin/product-form', [
+            'product'    => $product,
+            'categories' => $this->loadCategories(),
+            'errors'     => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function updateProduct(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $product = $this->products()->find($id);
+        if (! $product) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $payload = $this->validatedPayload($id);
+
+        if ($payload === null) {
+            return redirect()->to('/admin/products/' . $id . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->products()->update($id, $payload);
+        session()->setFlashdata('success', 'Product updated.');
+
+        return redirect()->to('/admin/products');
+    }
+
+    public function deleteProduct(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $this->products()->delete($id);
+        session()->setFlashdata('success', 'Product deleted.');
+
+        return redirect()->to('/admin/products');
+    }
+
+    public function bulkProducts()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        return view('admin/bulk-products', [
+            'errors' => session()->getFlashdata('errors') ?? [],
+            'importSummary' => session()->getFlashdata('importSummary'),
+        ]);
+    }
+
+    public function importProducts()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $file = $this->request->getFile('spreadsheet');
+        if (! $file instanceof UploadedFile || ! $file->isValid()) {
+            return redirect()->to('/admin/products/bulk')->with('errors', ['Please upload a valid CSV or XLSX file.']);
+        }
+
+        $extension = strtolower((string) $file->getExtension());
+        if (! in_array($extension, ['csv', 'xlsx'], true)) {
+            return redirect()->to('/admin/products/bulk')->with('errors', ['Unsupported file type. Upload a CSV or XLSX spreadsheet.']);
+        }
+
+        $uploadDirectory = WRITEPATH . 'uploads';
+        if (! is_dir($uploadDirectory)) {
+            mkdir($uploadDirectory, 0775, true);
+        }
+
+        $tempPath = WRITEPATH . 'uploads/' . $file->getRandomName();
+        $file->move(dirname($tempPath), basename($tempPath));
+
+        try {
+            $rows = $this->spreadsheetReader()->read($tempPath);
+            $summary = $this->importProductRows($rows);
+        } catch (\Throwable $exception) {
+            return redirect()->to('/admin/products/bulk')->with('errors', [$exception->getMessage()]);
+        } finally {
+            if (is_file($tempPath)) {
+                @unlink($tempPath);
+            }
+        }
+
+        session()->setFlashdata('importSummary', $summary);
+        session()->setFlashdata('success', 'Bulk import completed.');
+
+        return redirect()->to('/admin');
+    }
+
+    public function downloadProductTemplate()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $headers = [
+            'name',
+            'slug',
+            'sku',
+            'category',
+            'short_description',
+            'description',
+            'image_url',
+            'price_label',
+            'sort_order',
+            'is_active',
+        ];
+
+        $sampleRows = [
+            [
+                'Hydraulic Pump Service Kit',
+                'hydraulic-pump-service-kit',
+                'BSAS-HP-001',
+                'Service Kits',
+                'Seal, bearing, and wear-part kit for high-duty hydraulic pump overhauls.',
+                'Prepared for mining and drilling duty cycles, this kit consolidates essential overhaul components.',
+                '/assets/images/sparePart.webp',
+                'Quote on request',
+                '10',
+                '1',
+            ],
+            [
+                'Feed Beam Wear Pad Set',
+                'feed-beam-wear-pad-set',
+                'BSAS-FB-014',
+                'Spare Parts',
+                'Precision-machined wear pads for drilling rig feed beam stability and service life.',
+                'Designed to reduce play and improve feed guidance in demanding drill rig operations.',
+                '/assets/images/mpr-rig.webp',
+                'Fast dispatch',
+                '20',
+                '1',
+            ],
+        ];
+
+        $handle = fopen('php://temp', 'w+');
+        fputcsv($handle, $headers);
+        foreach ($sampleRows as $row) {
+            fputcsv($handle, $row);
+        }
+        rewind($handle);
+        $content = stream_get_contents($handle) ?: '';
+        fclose($handle);
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv')
+            ->setHeader('Content-Disposition', 'attachment; filename="bsas-product-import-template.csv"')
+            ->setBody($content);
+    }
+
+    public function exportProducts()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $products = $this->products()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->findAll();
+        $headers = [
+            'name',
+            'slug',
+            'sku',
+            'category',
+            'short_description',
+            'description',
+            'image_url',
+            'price_label',
+            'sort_order',
+            'is_active',
+        ];
+
+        $handle = fopen('php://temp', 'w+');
+        fputcsv($handle, $headers);
+        foreach ($products as $product) {
+            fputcsv($handle, [
+                $product['name'],
+                $product['slug'],
+                $product['sku'],
+                $product['category'],
+                $product['short_description'],
+                $product['description'],
+                $product['image_url'],
+                $product['price_label'],
+                (string) $product['sort_order'],
+                (string) $product['is_active'],
+            ]);
+        }
+        rewind($handle);
+        $content = stream_get_contents($handle) ?: '';
+        fclose($handle);
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv')
+            ->setHeader('Content-Disposition', 'attachment; filename="bsas-products-export.csv"')
+            ->setBody($content);
+    }
+
+    private function validatedPayload(?int $ignoreId = null): ?array
+    {
+        $rules = [
+            'name'              => 'required|min_length[3]',
+            'sku'               => 'permit_empty|max_length[80]',
+            'short_description' => 'permit_empty|max_length[2000]',
+            'description'       => 'permit_empty',
+            'image_url'         => 'permit_empty|max_length[255]',
+            'price_label'       => 'permit_empty|max_length[80]',
+            'sort_order'        => 'permit_empty|integer',
+            'is_active'         => 'permit_empty|in_list[0,1]',
+        ];
+
+        if (! $this->validateData($this->request->getPost(), $rules)) {
+            return null;
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+        $slug = trim((string) $this->request->getPost('slug'));
+        $slug = $slug !== '' ? url_title($slug, '-', true) : url_title($name, '-', true);
+        $slug = $this->uniqueSlug($slug, $ignoreId);
+        $sku  = trim((string) $this->request->getPost('sku'));
+
+        // --- Category resolution ---
+        // Priority 1: dropdown selection (category_id from categories table).
+        // Priority 2: plain text fallback (pre-migration or no categories yet).
+        $categoryId   = (int) $this->request->getPost('category_id');
+        $categoryName = '';
+        $resolvedId   = null;
+
+        if ($categoryId > 0) {
+            try {
+                $cat = $this->categoryModel()->find($categoryId);
+                if ($cat) {
+                    $categoryName = (string) $cat['name'];
+                    $resolvedId   = $categoryId;
+                }
+            } catch (\Throwable $e) {
+                // categories table not yet migrated — fall through to text fallback
+            }
+        }
+
+        if ($categoryName === '') {
+            $categoryName = trim((string) $this->request->getPost('category'));
+        }
+
+        if ($categoryName === '') {
+            $this->validator->setError('category_id', 'Please select or enter a product category.');
+
+            return null;
+        }
+
+        // Base payload — always safe, even before migrations run.
+        $payload = [
+            'name'              => $name,
+            'slug'              => $slug,
+            'sku'               => $sku,
+            'category'          => $categoryName,
+            'short_description' => trim((string) $this->request->getPost('short_description')),
+            'description'       => trim((string) $this->request->getPost('description')),
+            'image_url'         => trim((string) $this->request->getPost('image_url')),
+            'price_label'       => trim((string) $this->request->getPost('price_label')),
+            'sort_order'        => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active'         => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ];
+
+        // Only write category_id when the column exists (migration has been run).
+        if ($resolvedId !== null && $this->columnExists('products', 'category_id')) {
+            $payload['category_id'] = $resolvedId;
+        }
+
+        return $payload;
+    }
+
+    /** Check whether a column exists in a table without throwing if it does not. */
+    private function columnExists(string $table, string $column): bool
+    {
+        try {
+            return \Config\Database::connect()->fieldExists($column, $table);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Load the categories list safely.
+     * Returns an empty array if the categories table has not been migrated yet.
+     */
+    private function loadCategories(): array
+    {
+        try {
+            return $this->categoryModel()->active()->findAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function uniqueSlug(string $baseSlug, ?int $ignoreId = null): string
+    {
+        $slug = $baseSlug;
+        $suffix = 1;
+
+        while (true) {
+            $existing = $this->products()->where('slug', $slug)->first();
+            if (! $existing || ($ignoreId !== null && (int) $existing['id'] === $ignoreId)) {
+                return $slug;
+            }
+
+            $slug = $baseSlug . '-' . $suffix;
+            $suffix++;
+        }
+    }
+
+    private function products(): ProductModel
+    {
+        return new ProductModel();
+    }
+
+    private function categoryModel(): CategoryModel
+    {
+        return new CategoryModel();
+    }
+
+    private function quoteRequests(): QuoteRequestModel
+    {
+        return new QuoteRequestModel();
+    }
+
+    private function quoteItems(): QuoteRequestItemModel
+    {
+        return new QuoteRequestItemModel();
+    }
+
+    private function brochureLeads(): BrochureLeadModel
+    {
+        return new BrochureLeadModel();
+    }
+
+    private function spreadsheetReader(): SimpleSpreadsheetReader
+    {
+        return new SimpleSpreadsheetReader();
+    }
+
+    private function dashboardStats(): array
+    {
+        $totalProducts = $this->products()->countAllResults();
+        $activeProducts = $this->products()->where('is_active', 1)->countAllResults();
+        $hiddenProducts = $this->products()->where('is_active', 0)->countAllResults();
+        $quoteRequests = $this->quoteRequests()->countAllResults();
+        $cartQuotes = $this->quoteRequests()->where('request_type', 'cart')->countAllResults();
+        $brochureLeads = $this->brochureLeads()->countAllResults();
+
+        return [
+            'totalProducts' => $totalProducts,
+            'activeProducts' => $activeProducts,
+            'hiddenProducts' => $hiddenProducts,
+            'quoteRequests' => $quoteRequests,
+            'cartQuotes' => $cartQuotes,
+            'brochureLeads' => $brochureLeads,
+        ];
+    }
+
+    private function groupQuoteItemsByRequest(array $items): array
+    {
+        $grouped = [];
+
+        foreach ($items as $item) {
+            $grouped[(int) $item['quote_request_id']][] = $item;
+        }
+
+        return $grouped;
+    }
+
+    private function catalogAudit(): array
+    {
+        $products = $this->products()->findAll();
+        $missingSku = 0;
+        $missingImage = 0;
+        $withDescriptions = 0;
+
+        foreach ($products as $product) {
+            if (trim((string) ($product['sku'] ?? '')) === '') {
+                $missingSku++;
+            }
+
+            if (trim((string) ($product['image_url'] ?? '')) === '') {
+                $missingImage++;
+            }
+
+            if (trim((string) ($product['short_description'] ?? '')) !== '' || trim((string) ($product['description'] ?? '')) !== '') {
+                $withDescriptions++;
+            }
+        }
+
+        return [
+            'missingSku' => $missingSku,
+            'missingImage' => $missingImage,
+            'withDescriptions' => $withDescriptions,
+        ];
+    }
+
+    private function productCategoryBreakdown(): array
+    {
+        $counts = [];
+
+        foreach ($this->products()->findAll() as $product) {
+            $category = trim((string) ($product['category'] ?? ''));
+            if ($category === '') {
+                $category = 'Uncategorized';
+            }
+
+            $counts[$category] = ($counts[$category] ?? 0) + 1;
+        }
+
+        arsort($counts);
+
+        $snapshot = [];
+        foreach (array_slice($counts, 0, 6, true) as $category => $count) {
+            $snapshot[] = [
+                'category' => $category,
+                'count' => $count,
+            ];
+        }
+
+        return $snapshot;
+    }
+
+    private function quoteRequestBreakdown(): array
+    {
+        $counts = [
+            'product' => 0,
+            'cart' => 0,
+            'support' => 0,
+            'other' => 0,
+        ];
+
+        foreach ($this->quoteRequests()->findAll() as $quote) {
+            $type = strtolower(trim((string) ($quote['request_type'] ?? '')));
+            if (! array_key_exists($type, $counts)) {
+                $type = 'other';
+            }
+
+            $counts[$type]++;
+        }
+
+        return $counts;
+    }
+
+    private function performanceSnapshot(): array
+    {
+        $today = new \DateTimeImmutable('today');
+        $currentStart = $today->modify('-6 days');
+        $previousStart = $today->modify('-13 days');
+        $previousEnd = $today->modify('-7 days');
+
+        $quotes = $this->quoteRequests()->findAll();
+        $brochureLeads = $this->brochureLeads()->findAll();
+        $products = $this->products()->findAll();
+
+        $currentQuotes = 0;
+        $previousQuotes = 0;
+        foreach ($quotes as $quote) {
+            $date = $this->extractDate($quote['created_at'] ?? null);
+            if (! $date) {
+                continue;
+            }
+
+            if ($date >= $currentStart && $date <= $today) {
+                $currentQuotes++;
+            } elseif ($date >= $previousStart && $date <= $previousEnd) {
+                $previousQuotes++;
+            }
+        }
+
+        $currentBrochures = 0;
+        $previousBrochures = 0;
+        foreach ($brochureLeads as $lead) {
+            $date = $this->extractDate($lead['created_at'] ?? null);
+            if (! $date) {
+                continue;
+            }
+
+            if ($date >= $currentStart && $date <= $today) {
+                $currentBrochures++;
+            } elseif ($date >= $previousStart && $date <= $previousEnd) {
+                $previousBrochures++;
+            }
+        }
+
+        $recentProducts = 0;
+        foreach ($products as $product) {
+            $date = $this->extractDate($product['created_at'] ?? null);
+            if ($date && $date >= $currentStart && $date <= $today) {
+                $recentProducts++;
+            }
+        }
+
+        $health = $this->catalogHealthScore($products);
+
+        return [
+            'last7Quotes' => $currentQuotes,
+            'quoteChangePercent' => $this->percentageChange($previousQuotes, $currentQuotes),
+            'last7Brochures' => $currentBrochures,
+            'brochureChangePercent' => $this->percentageChange($previousBrochures, $currentBrochures),
+            'last7Products' => $recentProducts,
+            'healthScore' => $health,
+        ];
+    }
+
+    private function activityTimeline(int $days = 14): array
+    {
+        $today = new \DateTimeImmutable('today');
+        $start = $today->modify('-' . ($days - 1) . ' days');
+        $timeline = [];
+
+        for ($index = 0; $index < $days; $index++) {
+            $date = $start->modify('+' . $index . ' days');
+            $key = $date->format('Y-m-d');
+            $timeline[$key] = [
+                'date' => $key,
+                'label' => $date->format('d M'),
+                'quotes' => 0,
+                'brochures' => 0,
+                'products' => 0,
+            ];
+        }
+
+        foreach ($this->quoteRequests()->findAll() as $quote) {
+            $key = $this->extractDateKey($quote['created_at'] ?? null);
+            if ($key !== null && isset($timeline[$key])) {
+                $timeline[$key]['quotes']++;
+            }
+        }
+
+        foreach ($this->brochureLeads()->findAll() as $lead) {
+            $key = $this->extractDateKey($lead['created_at'] ?? null);
+            if ($key !== null && isset($timeline[$key])) {
+                $timeline[$key]['brochures']++;
+            }
+        }
+
+        foreach ($this->products()->findAll() as $product) {
+            $key = $this->extractDateKey($product['created_at'] ?? null);
+            if ($key !== null && isset($timeline[$key])) {
+                $timeline[$key]['products']++;
+            }
+        }
+
+        return array_values($timeline);
+    }
+
+    private function topRequestedProducts(int $limit = 5): array
+    {
+        $aggregate = [];
+
+        foreach ($this->quoteItems()->findAll() as $item) {
+            $name = trim((string) ($item['product_name'] ?? ''));
+            if ($name === '') {
+                $name = 'Unnamed Product';
+            }
+
+            if (! isset($aggregate[$name])) {
+                $aggregate[$name] = [
+                    'name' => $name,
+                    'requests' => 0,
+                    'quantity' => 0,
+                ];
+            }
+
+            $aggregate[$name]['requests']++;
+            $aggregate[$name]['quantity'] += (int) ($item['quantity'] ?? 0);
+        }
+
+        usort($aggregate, static function (array $left, array $right): int {
+            if ($left['quantity'] !== $right['quantity']) {
+                return $right['quantity'] <=> $left['quantity'];
+            }
+
+            if ($left['requests'] !== $right['requests']) {
+                return $right['requests'] <=> $left['requests'];
+            }
+
+            return strcmp($left['name'], $right['name']);
+        });
+
+        return array_slice(array_values($aggregate), 0, $limit);
+    }
+
+    private function sourcePageBreakdown(int $limit = 5): array
+    {
+        $aggregate = [];
+
+        foreach ($this->quoteRequests()->findAll() as $quote) {
+            $source = trim((string) ($quote['source_page'] ?? ''));
+            if ($source === '') {
+                $source = 'Direct submission';
+            }
+
+            $aggregate[$source] = ($aggregate[$source] ?? 0) + 1;
+        }
+
+        arsort($aggregate);
+
+        $rows = [];
+        foreach (array_slice($aggregate, 0, $limit, true) as $source => $count) {
+            $rows[] = [
+                'source' => $source,
+                'count' => $count,
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function catalogHealthScore(array $products): int
+    {
+        if ($products === []) {
+            return 0;
+        }
+
+        $points = 0.0;
+        $max = count($products) * 4;
+
+        foreach ($products as $product) {
+            if ((int) ($product['is_active'] ?? 0) === 1) {
+                $points += 1;
+            }
+            if (trim((string) ($product['sku'] ?? '')) !== '') {
+                $points += 1;
+            }
+            if (trim((string) ($product['image_url'] ?? '')) !== '') {
+                $points += 1;
+            }
+            if (
+                trim((string) ($product['short_description'] ?? '')) !== ''
+                || trim((string) ($product['description'] ?? '')) !== ''
+            ) {
+                $points += 1;
+            }
+        }
+
+        return (int) round(($points / $max) * 100);
+    }
+
+    private function percentageChange(int $previous, int $current): int
+    {
+        if ($previous === 0) {
+            return $current > 0 ? 100 : 0;
+        }
+
+        return (int) round((($current - $previous) / $previous) * 100);
+    }
+
+    private function extractDateKey($value): ?string
+    {
+        $date = $this->extractDate($value);
+
+        return $date?->format('Y-m-d');
+    }
+
+    private function extractDate($value): ?\DateTimeImmutable
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($value);
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return (new \DateTimeImmutable())->setTimestamp($timestamp)->setTime(0, 0);
+    }
+
+    private function importProductRows(array $rows): array
+    {
+        if ($rows === []) {
+            throw new \RuntimeException('The uploaded spreadsheet is empty.');
+        }
+
+        $header = array_map(static fn($value): string => strtolower(trim((string) $value)), array_shift($rows));
+        $required = ['name', 'category'];
+
+        foreach ($required as $requiredColumn) {
+            if (! in_array($requiredColumn, $header, true)) {
+                throw new \RuntimeException('Missing required column: ' . $requiredColumn);
+            }
+        }
+
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($rows as $index => $row) {
+            if ($this->rowIsEmpty($row)) {
+                continue;
+            }
+
+            $lineNumber = $index + 2;
+            $data = $this->mapImportRow($header, $row);
+
+            if ($data['name'] === '' || $data['category'] === '') {
+                $skipped++;
+                $errors[] = 'Row ' . $lineNumber . ': name and category are required.';
+                continue;
+            }
+
+            $payload = $this->sanitizeImportedPayload($data);
+            $existing = $this->findExistingProductForImport($payload);
+
+            if ($existing) {
+                $payload['slug'] = $this->resolveImportSlug($payload['slug'], (int) $existing['id'], $payload['name']);
+                $this->products()->update((int) $existing['id'], $payload);
+                $updated++;
+                continue;
+            }
+
+            $payload['slug'] = $this->resolveImportSlug($payload['slug'], null, $payload['name']);
+            $this->products()->insert($payload);
+            $created++;
+        }
+
+        return [
+            'created' => $created,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ];
+    }
+
+    private function mapImportRow(array $header, array $row): array
+    {
+        $mapped = [];
+
+        foreach ($header as $index => $column) {
+            $mapped[$column] = trim((string) ($row[$index] ?? ''));
+        }
+
+        return $mapped;
+    }
+
+    private function sanitizeImportedPayload(array $data): array
+    {
+        $categoryName = trim((string) ($data['category'] ?? ''));
+        $categoryId   = null;
+
+        if ($categoryName !== '') {
+            $cat        = $this->categoryModel()->findOrCreate($categoryName);
+            $categoryId = $cat ? (int) $cat['id'] : null;
+        }
+
+        return [
+            'name'              => $data['name'] ?? '',
+            'slug'              => trim((string) ($data['slug'] ?? '')),
+            'sku'               => trim((string) ($data['sku'] ?? '')),
+            'category'          => $categoryName,
+            'category_id'       => $categoryId,
+            'short_description' => trim((string) ($data['short_description'] ?? '')),
+            'description'       => trim((string) ($data['description'] ?? '')),
+            'image_url'         => trim((string) ($data['image_url'] ?? '')),
+            'price_label'       => trim((string) ($data['price_label'] ?? '')),
+            'sort_order'        => is_numeric($data['sort_order'] ?? null) ? (int) $data['sort_order'] : 0,
+            'is_active'         => in_array((string) ($data['is_active'] ?? '1'), ['0', 'false', 'FALSE'], true) ? 0 : 1,
+        ];
+    }
+
+    private function findExistingProductForImport(array $payload): ?array
+    {
+        if ($payload['sku'] !== '') {
+            $existing = $this->products()->where('sku', $payload['sku'])->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        if ($payload['slug'] !== '') {
+            $existing = $this->products()->where('slug', url_title($payload['slug'], '-', true))->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        return $this->products()->where('name', $payload['name'])->first();
+    }
+
+    private function resolveImportSlug(string $slug, ?int $ignoreId, string $name): string
+    {
+        $base = $slug !== '' ? $slug : $name;
+        $base = url_title($base, '-', true);
+
+        return $this->uniqueSlug($base, $ignoreId);
+    }
+
+    private function rowIsEmpty(array $row): bool
+    {
+        foreach ($row as $value) {
+            if (trim((string) $value) !== '') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function isAuthenticated(): bool
+    {
+        return session()->get('is_admin_authenticated') === true;
+    }
+
+    private function guard()
+    {
+        if ($this->isAuthenticated()) {
+            return null;
+        }
+
+        return redirect()->to('/admin/login')->with('message', 'Please sign in to access the backend.');
+    }
+}

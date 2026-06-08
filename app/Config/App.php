@@ -199,4 +199,39 @@ class App extends BaseConfig
      * @see http://www.w3.org/TR/CSP/
      */
     public bool $CSPEnabled = false;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $configuredHost = parse_url($this->baseURL, PHP_URL_HOST);
+
+        if (in_array($configuredHost, ['localhost', '127.0.0.1'], true)) {
+            $detectedBaseURL = $this->detectBaseURLFromRequest();
+
+            if ($detectedBaseURL !== null) {
+                $this->baseURL = $detectedBaseURL;
+            }
+        }
+    }
+
+    private function detectBaseURLFromRequest(): ?string
+    {
+        $host = $_SERVER['HTTP_HOST'] ?? null;
+
+        if ($host === null || $host === '') {
+            return null;
+        }
+
+        $httpsHeader = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        $isSecure = $httpsHeader === 'https'
+            || (! empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+            || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
+        $scheme = $isSecure ? 'https' : 'http';
+
+        $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $basePath   = trim(dirname($scriptName), '/.');
+
+        return $scheme . '://' . $host . ($basePath === '' ? '/' : '/' . $basePath . '/');
+    }
 }

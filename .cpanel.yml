@@ -5,20 +5,30 @@ deployment:
     - export APPPATH=/home/ixbwdbzy/bsas
     - export PUBLICPATH=/home/ixbwdbzy/public_html/bsas
     - export WRITEPATH=/home/ixbwdbzy/bsas/writable
+    - export APPSTAGE=/home/ixbwdbzy/bsas-stage
+    - export PUBLICSTAGE=/home/ixbwdbzy/public_html/bsas-stage
+    - /bin/rm -rf $APPSTAGE
+    - /bin/rm -rf $PUBLICSTAGE
     - /bin/mkdir -p $APPPATH
     - /bin/mkdir -p $PUBLICPATH
+    - /bin/mkdir -p $APPSTAGE
+    - /bin/mkdir -p $PUBLICSTAGE
     - /bin/mkdir -p $WRITEPATH/cache
     - /bin/mkdir -p $WRITEPATH/debugbar
     - /bin/mkdir -p $WRITEPATH/logs
     - /bin/mkdir -p $WRITEPATH/session
     - /bin/mkdir -p $WRITEPATH/uploads
+    - /bin/cp -R app $APPSTAGE
+    - /bin/cp composer.json $APPSTAGE
+    - /bin/cp composer.lock $APPSTAGE
+    - /bin/cp spark $APPSTAGE
+    - /bin/cp env $APPSTAGE/.env
+    - /bin/sh -c 'if [ -x /opt/cpanel/composer/bin/composer ]; then /opt/cpanel/composer/bin/composer install --no-dev --working-dir="$APPSTAGE"; else composer install --no-dev --working-dir="$APPSTAGE"; fi'
+    - /bin/cp -R public/. $PUBLICSTAGE
     - /bin/find $APPPATH -mindepth 1 -maxdepth 1 ! -name writable -exec rm -rf {} \;
     - /bin/find $PUBLICPATH -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
-    - /bin/cp -R app $APPPATH
-    - /bin/cp composer.json $APPPATH
-    - /bin/cp composer.lock $APPPATH
-    - /bin/cp spark $APPPATH
-    - /bin/cp env $APPPATH/.env
-    - /bin/sh -c 'if [ -x /opt/cpanel/composer/bin/composer ]; then /opt/cpanel/composer/bin/composer install --no-dev --working-dir="$APPPATH"; else composer install --no-dev --working-dir="$APPPATH"; fi'
-    - /bin/cp -R public/. $PUBLICPATH
+    - /bin/cp -R $APPSTAGE/. $APPPATH
+    - /bin/cp -R $PUBLICSTAGE/. $PUBLICPATH
+    - /bin/rm -rf $APPSTAGE
+    - /bin/rm -rf $PUBLICSTAGE
     - /bin/chmod -R 775 $WRITEPATH

@@ -94,6 +94,20 @@
                 </span>
             </a>
 
+            <a href="/admin/gallery" class="<?= in_array(($activeNav ?? ''), ['gallery-albums', 'gallery-album-editor', 'gallery-items'], true) ? 'is-active' : '' ?>">
+                <span class="adm-nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="5" width="18" height="14" rx="2"/>
+                        <circle cx="9" cy="10" r="1.5"/>
+                        <path d="M21 16l-5-5-4 4-2-2-5 5"/>
+                    </svg>
+                </span>
+                <span class="adm-nav-text">
+                    <span class="adm-nav-label">Gallery</span>
+                    <span class="adm-nav-desc">Albums and media</span>
+                </span>
+            </a>
+
         </nav>
 
         <section class="admin-side-card">

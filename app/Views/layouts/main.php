@@ -6,12 +6,15 @@
     <title><?= esc($title) ?> | <?= esc($brand) ?></title>
     <link rel="stylesheet" href="/assets/css/site.css">
     <?php if ($active === 'shop'): ?><link rel="stylesheet" href="/assets/css/shop-premium.css"><?php endif; ?>
+    <?php foreach (($extraStyles ?? []) as $style): ?>
+        <link rel="stylesheet" href="<?= esc($style) ?>">
+    <?php endforeach; ?>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide@3.6.2/dist/css/glide.core.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 </head>
 <?php $isShopExperience = $active === 'shop'; ?>
 <?php $currentPath = trim(uri_string(), '/'); ?>
-<body class="<?= $isShopExperience ? 'shop-body' : '' ?>">
+<body class="<?= esc(trim(($isShopExperience ? 'shop-body ' : '') . ($bodyClass ?? ''))) ?>">
 
 <?php if (! $isShopExperience): ?>
     <header class="site-header">

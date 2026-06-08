@@ -1682,23 +1682,6 @@ details.faq-item .faq-ans { padding: 0 20px 18px; font-size: 14px; color: var(--
 details.faq-item .faq-ans strong { color: var(--text); }
 
 /* ============================================================
-   GALLERY PAGE
-   ============================================================ */
-.gallery-intro { text-align: center; max-width: 680px; margin: 0 auto; }
-.gallery-intro p { font-size: 15px; color: var(--text-muted); line-height: 1.8; margin-bottom: 12px; }
-.gallery-intro .tag { display: inline-block; background: var(--orange); color: var(--black); font-weight: 700; font-size: 13px; padding: 4px 14px; border-radius: var(--r-pill); margin-top: 10px; }
-
-.gallery-events { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
-.gallery-event-card { border-radius: var(--r); overflow: hidden; position: relative; min-height: 340px; background: #2a2a2a; cursor: pointer; transition: transform .3s; }
-.gallery-event-card:hover { transform: translateY(-4px); }
-.gallery-event-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform .4s; }
-.gallery-event-card:hover .gallery-event-bg { transform: scale(1.05); }
-.gallery-event-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.8) 0%, rgba(0,0,0,.05) 60%); }
-.gallery-event-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px; color: #fff; }
-.gallery-event-label h3 { font-size: 22px; }
-.gallery-event-label span { font-size: 13px; color: #aaa; display: block; margin-top: 2px; }
-
-/* ============================================================
    SHOP PAGE
    ============================================================ */
 .shop-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
@@ -4024,7 +4007,6 @@ details.faq-item .faq-ans strong { color: var(--text); }
   .contact-form-card { padding: 28px 20px; }
   .contact-info-card { grid-template-columns: 1fr; }
 
-  .gallery-events { grid-template-columns: 1fr; }
   .services-grid { grid-template-columns: 1fr; }
   .shop-grid { grid-template-columns: 1fr; }
   .catalog-grid,
@@ -4123,7 +4105,6 @@ details.faq-item .faq-ans strong { color: var(--text); }
   .caps-grid { grid-template-columns: 1fr; }
   .customers-grid { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr; }
-  .gallery-events { grid-template-columns: 1fr; }
   .mpr-features-grid { grid-template-columns: 1fr; }
   .equip-intro-inner { grid-template-columns: 1fr 1fr; }
   .equip-intro-stat:last-of-type { border-right: none; margin-right: 0; }

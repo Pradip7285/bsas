@@ -5,11 +5,14 @@ namespace App\Controllers;
 use App\Libraries\SimpleSpreadsheetReader;
 use App\Models\BrochureLeadModel;
 use App\Models\CategoryModel;
+use App\Models\GalleryAlbumModel;
+use App\Models\GalleryItemModel;
 use App\Models\ProductModel;
 use App\Models\QuoteRequestItemModel;
 use App\Models\QuoteRequestModel;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\Files\UploadedFile;
+use CodeIgniter\Exceptions\PageNotFoundException;
 
 class AdminController extends Controller
 {
@@ -224,6 +227,189 @@ class AdminController extends Controller
             'productCounts' => $counts,
             'errors'        => session()->getFlashdata('errors') ?? [],
         ]);
+    }
+
+    public function galleryAlbums()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $albums = $this->galleryAlbumModel()->orderBy('sort_order', 'ASC')->orderBy('event_date', 'DESC')->findAll();
+        $counts = $this->galleryItemCounts();
+
+        return view('admin/gallery-albums', [
+            'albums' => $albums,
+            'itemCounts' => $counts,
+            'errors' => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function newGalleryAlbum()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        return view('admin/gallery-album-form', [
+            'album' => null,
+            'errors' => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createGalleryAlbum()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $payload = $this->validatedGalleryAlbumPayload();
+
+        if ($payload === null) {
+            return redirect()->to('/admin/gallery/new')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->galleryAlbumModel()->insert($payload);
+        session()->setFlashdata('success', 'Gallery album created.');
+
+        return redirect()->to('/admin/gallery');
+    }
+
+    public function editGalleryAlbum(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $album = $this->galleryAlbumModel()->find($id);
+
+        if (! $album) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        return view('admin/gallery-album-form', [
+            'album' => $album,
+            'errors' => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function updateGalleryAlbum(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $album = $this->galleryAlbumModel()->find($id);
+
+        if (! $album) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $payload = $this->validatedGalleryAlbumPayload($id);
+
+        if ($payload === null) {
+            return redirect()->to('/admin/gallery/' . $id . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->galleryAlbumModel()->update($id, $payload);
+        session()->setFlashdata('success', 'Gallery album updated.');
+
+        return redirect()->to('/admin/gallery');
+    }
+
+    public function deleteGalleryAlbum(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $this->galleryAlbumModel()->delete($id);
+        session()->setFlashdata('success', 'Gallery album deleted.');
+
+        return redirect()->to('/admin/gallery');
+    }
+
+    public function galleryItems(int $albumId)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $album = $this->galleryAlbumModel()->find($albumId);
+
+        if (! $album) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        return view('admin/gallery-items', [
+            'album' => $album,
+            'items' => $this->galleryItemModel()->forAlbum($albumId)->orderBy('sort_order', 'ASC')->orderBy('id', 'ASC')->findAll(),
+            'errors' => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createGalleryItem(int $albumId)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        if (! $this->galleryAlbumModel()->find($albumId)) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $payload = $this->validatedGalleryItemPayload($albumId);
+
+        if ($payload === null) {
+            return redirect()->to('/admin/gallery/' . $albumId . '/items')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->galleryItemModel()->insert($payload);
+        session()->setFlashdata('success', 'Gallery image added.');
+
+        return redirect()->to('/admin/gallery/' . $albumId . '/items');
+    }
+
+    public function updateGalleryItem(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $item = $this->galleryItemModel()->find($id);
+
+        if (! $item) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $payload = $this->validatedGalleryItemPayload((int) $item['album_id']);
+
+        if ($payload === null) {
+            return redirect()->to('/admin/gallery/' . $item['album_id'] . '/items')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->galleryItemModel()->update($id, $payload);
+        session()->setFlashdata('success', 'Gallery image updated.');
+
+        return redirect()->to('/admin/gallery/' . $item['album_id'] . '/items');
+    }
+
+    public function deleteGalleryItem(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $item = $this->galleryItemModel()->find($id);
+
+        if (! $item) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $this->galleryItemModel()->delete($id);
+        session()->setFlashdata('success', 'Gallery image deleted.');
+
+        return redirect()->to('/admin/gallery/' . $item['album_id'] . '/items');
     }
 
     public function createCategory()
@@ -723,9 +909,106 @@ class AdminController extends Controller
         }
     }
 
+    private function validatedGalleryAlbumPayload(?int $ignoreId = null): ?array
+    {
+        $rules = [
+            'name' => 'required|min_length[3]|max_length[160]',
+            'eyebrow' => 'permit_empty|max_length[120]',
+            'location' => 'permit_empty|max_length[180]',
+            'summary' => 'permit_empty',
+            'intro_text' => 'permit_empty',
+            'cover_image_url' => 'permit_empty|max_length[255]',
+            'hero_image_url' => 'permit_empty|max_length[255]',
+            'event_date' => 'permit_empty|valid_date[Y-m-d]',
+            'sort_order' => 'permit_empty|integer',
+            'is_active' => 'permit_empty|in_list[0,1]',
+        ];
+
+        if (! $this->validateData($this->request->getPost(), $rules)) {
+            return null;
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+        $slug = trim((string) $this->request->getPost('slug'));
+        $slug = $slug !== '' ? url_title($slug, '-', true) : url_title($name, '-', true);
+        $slug = $this->galleryAlbumModel()->uniqueSlug($slug, $ignoreId);
+
+        return [
+            'name' => $name,
+            'slug' => $slug,
+            'eyebrow' => trim((string) $this->request->getPost('eyebrow')),
+            'location' => trim((string) $this->request->getPost('location')),
+            'summary' => trim((string) $this->request->getPost('summary')),
+            'intro_text' => trim((string) $this->request->getPost('intro_text')),
+            'cover_image_url' => trim((string) $this->request->getPost('cover_image_url')),
+            'hero_image_url' => trim((string) $this->request->getPost('hero_image_url')),
+            'event_date' => trim((string) $this->request->getPost('event_date')) ?: null,
+            'sort_order' => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active' => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ];
+    }
+
+    private function validatedGalleryItemPayload(int $albumId): ?array
+    {
+        $rules = [
+            'title' => 'required|min_length[2]|max_length[160]',
+            'caption' => 'permit_empty',
+            'image_url' => 'required|max_length[255]',
+            'badge_label' => 'permit_empty|max_length[120]',
+            'display_style' => 'permit_empty|in_list[standard,wide,tall]',
+            'sort_order' => 'permit_empty|integer',
+            'is_featured' => 'permit_empty|in_list[0,1]',
+            'is_active' => 'permit_empty|in_list[0,1]',
+        ];
+
+        if (! $this->validateData($this->request->getPost(), $rules)) {
+            return null;
+        }
+
+        return [
+            'album_id' => $albumId,
+            'title' => trim((string) $this->request->getPost('title')),
+            'caption' => trim((string) $this->request->getPost('caption')),
+            'image_url' => trim((string) $this->request->getPost('image_url')),
+            'badge_label' => trim((string) $this->request->getPost('badge_label')),
+            'display_style' => trim((string) $this->request->getPost('display_style')) ?: 'standard',
+            'sort_order' => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_featured' => $this->request->getPost('is_featured') === '1' ? 1 : 0,
+            'is_active' => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ];
+    }
+
+    private function galleryItemCounts(): array
+    {
+        try {
+            $rows = \Config\Database::connect()->query(
+                'SELECT album_id, COUNT(*) AS cnt FROM gallery_items GROUP BY album_id'
+            )->getResultArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['album_id']] = (int) $row['cnt'];
+        }
+
+        return $counts;
+    }
+
     private function products(): ProductModel
     {
         return new ProductModel();
+    }
+
+    private function galleryAlbumModel(): GalleryAlbumModel
+    {
+        return new GalleryAlbumModel();
+    }
+
+    private function galleryItemModel(): GalleryItemModel
+    {
+        return new GalleryItemModel();
     }
 
     private function categoryModel(): CategoryModel

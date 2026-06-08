@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Models\BrochureLeadModel;
 use App\Models\CategoryModel;
+use App\Models\GalleryAlbumModel;
+use App\Models\GalleryItemModel;
 use App\Models\ProductModel;
 use App\Models\QuoteRequestItemModel;
 use App\Models\QuoteRequestModel;
@@ -120,7 +122,57 @@ class Website extends Controller
     public function support() { return $this->page('support', 'We respond fast. We fix faster.'); }
     public function faq() { return $this->page('faq', 'Frequently Asked Questions'); }
     public function privacy() { return $this->page('privacy', 'Privacy Policy'); }
-    public function gallery() { return $this->page('gallery', 'Steel, Sweat, and the Occasional Smiles'); }
+    public function gallery()
+    {
+        $albums = $this->galleryAlbumModel()->active()->findAll();
+        $albumIds = array_map(static fn(array $album): int => (int) $album['id'], $albums);
+
+        $items = $albumIds === []
+            ? []
+            : $this->galleryItemModel()->active()->whereIn('album_id', $albumIds)->findAll();
+
+        $itemsByAlbum = [];
+        foreach ($items as $item) {
+            $itemsByAlbum[(int) $item['album_id']][] = $item;
+        }
+
+        foreach ($albums as &$album) {
+            $albumItems = $itemsByAlbum[(int) $album['id']] ?? [];
+            $album['item_count'] = count($albumItems);
+            $album['preview_items'] = array_slice($albumItems, 0, 4);
+            $album['cover_image_url'] = $album['cover_image_url'] ?: ($albumItems[0]['image_url'] ?? '/assets/images/b&w.png');
+        }
+        unset($album);
+
+        return $this->page('gallery-home', 'Gallery Albums', [
+            'albums' => $albums,
+            'extraStyles' => ['/assets/css/gallery.css'],
+            'bodyClass' => 'gallery-body',
+            'active' => 'gallery',
+        ]);
+    }
+
+    public function galleryAlbum(string $slug)
+    {
+        $album = $this->galleryAlbumModel()->active()->where('slug', $slug)->first();
+
+        if (! $album) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $items = $this->galleryItemModel()->active()->forAlbum((int) $album['id'])->findAll();
+
+        $album['cover_image_url'] = $album['cover_image_url'] ?: ($items[0]['image_url'] ?? '/assets/images/b&w.png');
+        $album['hero_image_url'] = $album['hero_image_url'] ?: $album['cover_image_url'];
+
+        return $this->page('gallery-album', $album['name'], [
+            'album' => $album,
+            'items' => $items,
+            'extraStyles' => ['/assets/css/gallery.css'],
+            'bodyClass' => 'gallery-body gallery-body--album',
+            'active' => 'gallery',
+        ]);
+    }
 
     public function addToCart()
     {
@@ -384,6 +436,16 @@ class Website extends Controller
     private function products(): ProductModel
     {
         return new ProductModel();
+    }
+
+    private function galleryAlbumModel(): GalleryAlbumModel
+    {
+        return new GalleryAlbumModel();
+    }
+
+    private function galleryItemModel(): GalleryItemModel
+    {
+        return new GalleryItemModel();
     }
 
     private function quoteRequests(): QuoteRequestModel

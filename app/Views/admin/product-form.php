@@ -38,7 +38,7 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
         <?php endif; ?>
     </div>
 
-    <form method="post" action="<?= esc($formAction) ?>" id="product-form" class="admin-form-grid">
+    <form method="post" action="<?= esc($formAction) ?>" id="product-form" class="admin-form-grid" enctype="multipart/form-data">
         <?= csrf_field() ?>
 
         <!-- ── Name ── -->
@@ -129,9 +129,12 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
             </p>
         </div>
 
-        <!-- ── Image URL ── -->
+        <!-- ── Product Image ── -->
         <div class="form-group">
-            <label for="pf-image">Image URL</label>
+            <label>Product Image</label>
+            <input type="file" name="image_file" id="pf-image-file" accept="image/*"
+                   onchange="previewUpload(this)" style="margin-bottom:8px">
+            <p class="adm-field-hint" style="margin:0 0 6px">Or enter an existing image URL:</p>
             <input id="pf-image" type="text" name="image_url"
                    value="<?= esc(old('image_url', $product['image_url'] ?? '')) ?>"
                    placeholder="/assets/images/sparePart.webp"
@@ -376,6 +379,22 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
             wrap.style.display = 'none';
         }
     };
+
+    window.previewUpload = function (input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var wrap = document.getElementById('img-preview-wrap');
+                var img  = document.getElementById('img-preview');
+                img.src = e.target.result;
+                wrap.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+            // Clear the URL field so there's no confusion about which source wins
+            document.getElementById('pf-image').value = '';
+        }
+    };
+
     // Trigger on load for edit page
     var imgInput = document.getElementById('pf-image');
     if (imgInput && imgInput.value) previewImage(imgInput.value);

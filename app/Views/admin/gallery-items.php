@@ -105,7 +105,7 @@ $mastheadText = 'Manage the visual tiles for one album. Set layout style, captio
                 </div>
             </div>
 
-            <form method="post" action="/admin/gallery/<?= esc((string) $album['id']) ?>/items" id="gallery-item-form" class="admin-form-grid" style="grid-template-columns:1fr">
+            <form method="post" action="/admin/gallery/<?= esc((string) $album['id']) ?>/items" id="gallery-item-form" class="admin-form-grid" style="grid-template-columns:1fr" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 <div class="form-group">
                     <label for="gi-title">Title</label>
@@ -116,8 +116,14 @@ $mastheadText = 'Manage the visual tiles for one album. Set layout style, captio
                     <input id="gi-badge" type="text" name="badge_label" value="<?= esc(old('badge_label')) ?>">
                 </div>
                 <div class="form-group">
-                    <label for="gi-image">Image URL</label>
-                    <input id="gi-image" type="text" name="image_url" value="<?= esc(old('image_url')) ?>" required>
+                    <label>Image</label>
+                    <input type="file" name="image_file" id="gi-image-file" accept="image/*"
+                           onchange="previewGalleryUpload(this)" style="margin-bottom:8px">
+                    <img id="gi-image-preview" src="" alt=""
+                         style="max-width:140px;max-height:100px;border-radius:8px;display:none;margin-bottom:6px;border:1.5px solid var(--adm-border)">
+                    <p class="adm-field-hint" style="margin:0 0 6px">Or enter an existing image URL:</p>
+                    <input id="gi-image" type="text" name="image_url" value="<?= esc(old('image_url')) ?>"
+                           placeholder="/uploads/photo.jpg" oninput="previewGalleryUrl(this.value)">
                 </div>
                 <div class="form-group">
                     <label for="gi-style">Display Style</label>
@@ -166,6 +172,8 @@ $mastheadText = 'Manage the visual tiles for one album. Set layout style, captio
     var title = document.getElementById('gi-title');
     var badge = document.getElementById('gi-badge');
     var image = document.getElementById('gi-image');
+    var imageFile = document.getElementById('gi-image-file');
+    var imagePreview = document.getElementById('gi-image-preview');
     var style = document.getElementById('gi-style');
     var sort = document.getElementById('gi-sort');
     var featured = document.getElementById('gi-featured');
@@ -185,6 +193,15 @@ $mastheadText = 'Manage the visual tiles for one album. Set layout style, captio
             featured.value = this.dataset.featured;
             active.value = this.dataset.active;
             caption.value = this.dataset.caption;
+            // Show existing image in preview
+            if (this.dataset.image) {
+                imagePreview.src = this.dataset.image;
+                imagePreview.style.display = 'block';
+            } else {
+                imagePreview.style.display = 'none';
+            }
+            // Clear any previously chosen file
+            imageFile.value = '';
             submitBtn.textContent = '✓ Update Image';
             resetBtn.style.display = 'inline-flex';
             formTitle.textContent = 'Edit image';
@@ -199,7 +216,30 @@ $mastheadText = 'Manage the visual tiles for one album. Set layout style, captio
         formTitle.textContent = 'Add image';
         formText.textContent = 'Create image tiles for this album. Wide and tall styles affect the public mosaic layout.';
         resetBtn.style.display = 'none';
+        imagePreview.style.display = 'none';
+        imagePreview.src = '';
     });
+
+    window.previewGalleryUpload = function (input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+            image.value = '';
+        }
+    };
+
+    window.previewGalleryUrl = function (url) {
+        if (url && url.trim() !== '') {
+            imagePreview.src = url.trim();
+            imagePreview.style.display = 'block';
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    };
 })();
 </script>
 <?php $this->endSection() ?>

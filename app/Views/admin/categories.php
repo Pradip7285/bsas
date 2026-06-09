@@ -104,7 +104,8 @@ $mastheadText  = 'All category names are bound here. Products pick from this lis
                                         Edit
                                     </button>
                                     <form method="post" action="/admin/categories/<?= esc((string) $cat['id']) ?>/delete"
-                                          onsubmit="return confirm('Delete category \'<?= esc(addslashes($cat['name'])) ?>\'? Products using it will be detached.')">
+                                          data-confirm="Delete category &quot;<?= esc($cat['name']) ?>&quot;? Products using it will be detached."
+                                          onsubmit="return confirm(this.dataset.confirm)">
                                         <?= csrf_field() ?>
                                         <button type="submit" style="font-size:12px;font-weight:700;color:#dc2626;padding:5px 12px;border:1.5px solid #fca5a5;border-radius:8px;background:#fff0f0;cursor:pointer;font-family:inherit;transition:all .15s">
                                             Delete

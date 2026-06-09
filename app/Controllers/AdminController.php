@@ -323,6 +323,12 @@ class AdminController extends Controller
             return $redirect;
         }
 
+        $album = $this->galleryAlbumModel()->find($id);
+
+        if (! $album) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
         $this->galleryAlbumModel()->delete($id);
         session()->setFlashdata('success', 'Gallery album deleted.');
 
@@ -385,13 +391,13 @@ class AdminController extends Controller
         $payload = $this->validatedGalleryItemPayload((int) $item['album_id']);
 
         if ($payload === null) {
-            return redirect()->to('/admin/gallery/' . $item['album_id'] . '/items')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/gallery/' . (int) $item['album_id'] . '/items')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $this->galleryItemModel()->update($id, $payload);
         session()->setFlashdata('success', 'Gallery image updated.');
 
-        return redirect()->to('/admin/gallery/' . $item['album_id'] . '/items');
+        return redirect()->to('/admin/gallery/' . (int) $item['album_id'] . '/items');
     }
 
     public function deleteGalleryItem(int $id)
@@ -409,7 +415,7 @@ class AdminController extends Controller
         $this->galleryItemModel()->delete($id);
         session()->setFlashdata('success', 'Gallery image deleted.');
 
-        return redirect()->to('/admin/gallery/' . $item['album_id'] . '/items');
+        return redirect()->to('/admin/gallery/' . (int) $item['album_id'] . '/items');
     }
 
     public function createCategory()
@@ -478,6 +484,8 @@ class AdminController extends Controller
 
         $slug = $this->categoryModel()->uniqueSlug(url_title($name, '-', true), $id);
 
+        $oldName = (string) ($cat['name'] ?? '');
+
         $this->categoryModel()->update($id, [
             'name'        => $name,
             'slug'        => $slug,
@@ -486,8 +494,17 @@ class AdminController extends Controller
             'is_active'   => $this->request->getPost('is_active') === '0' ? 0 : 1,
         ]);
 
-        // Keep the denormalized category string in sync for all bound products.
+        // Sync products bound by FK.
         $this->products()->where('category_id', $id)->set(['category' => $name])->update();
+
+        // Also sync text-only linked products (pre-migration or bulk-imported rows with no category_id).
+        if ($oldName !== '' && $oldName !== $name) {
+            $this->products()
+                ->where('category_id', null)
+                ->where('category', $oldName)
+                ->set(['category' => $name])
+                ->update();
+        }
 
         session()->setFlashdata('success', 'Category updated. Product display names have been re-synced.');
 
@@ -630,6 +647,11 @@ class AdminController extends Controller
             return $redirect;
         }
 
+        $product = $this->products()->find($id);
+        if (! $product) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         $this->products()->delete($id);
         session()->setFlashdata('success', 'Product deleted.');
 
@@ -672,10 +694,14 @@ class AdminController extends Controller
         $tempPath = WRITEPATH . 'uploads/' . $file->getRandomName();
         $file->move(dirname($tempPath), basename($tempPath));
 
+        $db = \Config\Database::connect();
+        $db->transBegin();
         try {
-            $rows = $this->spreadsheetReader()->read($tempPath);
+            $rows    = $this->spreadsheetReader()->read($tempPath);
             $summary = $this->importProductRows($rows);
+            $db->transCommit();
         } catch (\Throwable $exception) {
+            $db->transRollback();
             return redirect()->to('/admin/products/bulk')->with('errors', [$exception->getMessage()]);
         } finally {
             if (is_file($tempPath)) {
@@ -848,6 +874,14 @@ class AdminController extends Controller
             return null;
         }
 
+        // File upload takes priority; fall back to the URL text field.
+        // If a file was supplied but rejected (wrong type), bail so the error is shown.
+        $imageUrl = $this->handleImageUpload('image_file');
+        if ($imageUrl === null && $this->validator->getError('image_file') !== '') {
+            return null;
+        }
+        $imageUrl = $imageUrl ?? trim((string) $this->request->getPost('image_url'));
+
         // Base payload — always safe, even before migrations run.
         $payload = [
             'name'              => $name,
@@ -856,7 +890,7 @@ class AdminController extends Controller
             'category'          => $categoryName,
             'short_description' => trim((string) $this->request->getPost('short_description')),
             'description'       => trim((string) $this->request->getPost('description')),
-            'image_url'         => trim((string) $this->request->getPost('image_url')),
+            'image_url'         => $imageUrl,
             'price_label'       => trim((string) $this->request->getPost('price_label')),
             'sort_order'        => (int) ($this->request->getPost('sort_order') ?: 0),
             'is_active'         => $this->request->getPost('is_active') === '0' ? 0 : 1,
@@ -933,6 +967,18 @@ class AdminController extends Controller
         $slug = $slug !== '' ? url_title($slug, '-', true) : url_title($name, '-', true);
         $slug = $this->galleryAlbumModel()->uniqueSlug($slug, $ignoreId);
 
+        $coverImageUrl = $this->handleImageUpload('cover_image_file');
+        if ($coverImageUrl === null && $this->validator->getError('cover_image_file') !== '') {
+            return null;
+        }
+        $coverImageUrl = $coverImageUrl ?? trim((string) $this->request->getPost('cover_image_url'));
+
+        $heroImageUrl = $this->handleImageUpload('hero_image_file');
+        if ($heroImageUrl === null && $this->validator->getError('hero_image_file') !== '') {
+            return null;
+        }
+        $heroImageUrl = $heroImageUrl ?? trim((string) $this->request->getPost('hero_image_url'));
+
         return [
             'name' => $name,
             'slug' => $slug,
@@ -940,8 +986,8 @@ class AdminController extends Controller
             'location' => trim((string) $this->request->getPost('location')),
             'summary' => trim((string) $this->request->getPost('summary')),
             'intro_text' => trim((string) $this->request->getPost('intro_text')),
-            'cover_image_url' => trim((string) $this->request->getPost('cover_image_url')),
-            'hero_image_url' => trim((string) $this->request->getPost('hero_image_url')),
+            'cover_image_url' => $coverImageUrl,
+            'hero_image_url' => $heroImageUrl,
             'event_date' => trim((string) $this->request->getPost('event_date')) ?: null,
             'sort_order' => (int) ($this->request->getPost('sort_order') ?: 0),
             'is_active' => $this->request->getPost('is_active') === '0' ? 0 : 1,
@@ -953,7 +999,7 @@ class AdminController extends Controller
         $rules = [
             'title' => 'required|min_length[2]|max_length[160]',
             'caption' => 'permit_empty',
-            'image_url' => 'required|max_length[255]',
+            'image_url' => 'permit_empty|max_length[255]',
             'badge_label' => 'permit_empty|max_length[120]',
             'display_style' => 'permit_empty|in_list[standard,wide,tall]',
             'sort_order' => 'permit_empty|integer',
@@ -965,17 +1011,58 @@ class AdminController extends Controller
             return null;
         }
 
+        $imageUrl = $this->handleImageUpload('image_file');
+        if ($imageUrl === null && $this->validator->getError('image_file') !== '') {
+            return null;
+        }
+        $imageUrl = $imageUrl ?? trim((string) $this->request->getPost('image_url'));
+
+        if ($imageUrl === '') {
+            $this->validator->setError('image_url', 'Please upload an image file or provide an image URL.');
+            return null;
+        }
+
         return [
             'album_id' => $albumId,
             'title' => trim((string) $this->request->getPost('title')),
             'caption' => trim((string) $this->request->getPost('caption')),
-            'image_url' => trim((string) $this->request->getPost('image_url')),
+            'image_url' => $imageUrl,
             'badge_label' => trim((string) $this->request->getPost('badge_label')),
             'display_style' => trim((string) $this->request->getPost('display_style')) ?: 'standard',
             'sort_order' => (int) ($this->request->getPost('sort_order') ?: 0),
             'is_featured' => $this->request->getPost('is_featured') === '1' ? 1 : 0,
             'is_active' => $this->request->getPost('is_active') === '0' ? 0 : 1,
         ];
+    }
+
+    private function handleImageUpload(string $fieldName): ?string
+    {
+        $file = $this->request->getFile($fieldName);
+
+        if (! $file instanceof UploadedFile || ! $file->isValid() || $file->hasMoved()) {
+            return null;
+        }
+
+        $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        $ext     = strtolower((string) $file->getExtension());
+
+        if (! in_array($ext, $allowed, true)) {
+            $this->validator->setError(
+                $fieldName,
+                'Invalid file type ".' . $ext . '". Allowed types: jpg, jpeg, png, webp, gif.'
+            );
+            return null;
+        }
+
+        $uploadDir = FCPATH . 'uploads';
+        if (! is_dir($uploadDir)) {
+            mkdir($uploadDir, 0775, true);
+        }
+
+        $newName = $file->getRandomName();
+        $file->move($uploadDir, $newName);
+
+        return '/uploads/' . $newName;
     }
 
     private function galleryItemCounts(): array
@@ -1038,20 +1125,32 @@ class AdminController extends Controller
 
     private function dashboardStats(): array
     {
-        $totalProducts = $this->products()->countAllResults();
-        $activeProducts = $this->products()->where('is_active', 1)->countAllResults();
-        $hiddenProducts = $this->products()->where('is_active', 0)->countAllResults();
-        $quoteRequests = $this->quoteRequests()->countAllResults();
-        $cartQuotes = $this->quoteRequests()->where('request_type', 'cart')->countAllResults();
-        $brochureLeads = $this->brochureLeads()->countAllResults();
+        $db = \Config\Database::connect();
+
+        $pRow = $db->query(
+            'SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) AS hidden
+             FROM products'
+        )->getRowArray();
+
+        $qRow = $db->query(
+            "SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN request_type = 'cart' THEN 1 ELSE 0 END) AS cart
+             FROM quote_requests"
+        )->getRowArray();
+
+        $brochureCount = (int) ($db->query(
+            'SELECT COUNT(*) AS cnt FROM brochure_leads'
+        )->getRowArray()['cnt'] ?? 0);
 
         return [
-            'totalProducts' => $totalProducts,
-            'activeProducts' => $activeProducts,
-            'hiddenProducts' => $hiddenProducts,
-            'quoteRequests' => $quoteRequests,
-            'cartQuotes' => $cartQuotes,
-            'brochureLeads' => $brochureLeads,
+            'totalProducts'  => (int) ($pRow['total']  ?? 0),
+            'activeProducts' => (int) ($pRow['active'] ?? 0),
+            'hiddenProducts' => (int) ($pRow['hidden'] ?? 0),
+            'quoteRequests'  => (int) ($qRow['total']  ?? 0),
+            'cartQuotes'     => (int) ($qRow['cart']   ?? 0),
+            'brochureLeads'  => $brochureCount,
         ];
     }
 
@@ -1068,74 +1167,59 @@ class AdminController extends Controller
 
     private function catalogAudit(): array
     {
-        $products = $this->products()->findAll();
-        $missingSku = 0;
-        $missingImage = 0;
-        $withDescriptions = 0;
-
-        foreach ($products as $product) {
-            if (trim((string) ($product['sku'] ?? '')) === '') {
-                $missingSku++;
-            }
-
-            if (trim((string) ($product['image_url'] ?? '')) === '') {
-                $missingImage++;
-            }
-
-            if (trim((string) ($product['short_description'] ?? '')) !== '' || trim((string) ($product['description'] ?? '')) !== '') {
-                $withDescriptions++;
-            }
-        }
+        $db  = \Config\Database::connect();
+        $row = $db->query(
+            "SELECT
+                SUM(CASE WHEN TRIM(COALESCE(sku,''))         = '' THEN 1 ELSE 0 END) AS missing_sku,
+                SUM(CASE WHEN TRIM(COALESCE(image_url,''))   = '' THEN 1 ELSE 0 END) AS missing_image,
+                SUM(CASE WHEN TRIM(COALESCE(short_description,'')) != ''
+                           OR  TRIM(COALESCE(description,''))       != ''
+                         THEN 1 ELSE 0 END) AS with_desc
+             FROM products"
+        )->getRowArray();
 
         return [
-            'missingSku' => $missingSku,
-            'missingImage' => $missingImage,
-            'withDescriptions' => $withDescriptions,
+            'missingSku'       => (int) ($row['missing_sku']    ?? 0),
+            'missingImage'     => (int) ($row['missing_image']  ?? 0),
+            'withDescriptions' => (int) ($row['with_desc']      ?? 0),
         ];
     }
 
     private function productCategoryBreakdown(): array
     {
-        $counts = [];
+        $db   = \Config\Database::connect();
+        $rows = $db->query(
+            "SELECT COALESCE(NULLIF(TRIM(category),''), 'Uncategorized') AS category,
+                    COUNT(*) AS count
+             FROM products
+             GROUP BY COALESCE(NULLIF(TRIM(category),''), 'Uncategorized')
+             ORDER BY count DESC
+             LIMIT 6"
+        )->getResultArray();
 
-        foreach ($this->products()->findAll() as $product) {
-            $category = trim((string) ($product['category'] ?? ''));
-            if ($category === '') {
-                $category = 'Uncategorized';
-            }
-
-            $counts[$category] = ($counts[$category] ?? 0) + 1;
-        }
-
-        arsort($counts);
-
-        $snapshot = [];
-        foreach (array_slice($counts, 0, 6, true) as $category => $count) {
-            $snapshot[] = [
-                'category' => $category,
-                'count' => $count,
-            ];
-        }
-
-        return $snapshot;
+        return array_map(
+            static fn($r) => ['category' => $r['category'], 'count' => (int) $r['count']],
+            $rows
+        );
     }
 
     private function quoteRequestBreakdown(): array
     {
-        $counts = [
-            'product' => 0,
-            'cart' => 0,
-            'support' => 0,
-            'other' => 0,
-        ];
+        $db   = \Config\Database::connect();
+        $rows = $db->query(
+            "SELECT LOWER(TRIM(COALESCE(request_type,''))) AS type, COUNT(*) AS cnt
+             FROM quote_requests
+             GROUP BY LOWER(TRIM(COALESCE(request_type,'')))"
+        )->getResultArray();
 
-        foreach ($this->quoteRequests()->findAll() as $quote) {
-            $type = strtolower(trim((string) ($quote['request_type'] ?? '')));
-            if (! array_key_exists($type, $counts)) {
-                $type = 'other';
+        $counts = ['product' => 0, 'cart' => 0, 'support' => 0, 'other' => 0];
+        foreach ($rows as $row) {
+            $type = (string) $row['type'];
+            if (array_key_exists($type, $counts)) {
+                $counts[$type] = (int) $row['cnt'];
+            } else {
+                $counts['other'] += (int) $row['cnt'];
             }
-
-            $counts[$type]++;
         }
 
         return $counts;
@@ -1143,198 +1227,161 @@ class AdminController extends Controller
 
     private function performanceSnapshot(): array
     {
-        $today = new \DateTimeImmutable('today');
-        $currentStart = $today->modify('-6 days');
-        $previousStart = $today->modify('-13 days');
-        $previousEnd = $today->modify('-7 days');
+        $db            = \Config\Database::connect();
+        $todayStr      = date('Y-m-d');
+        $currentStart  = date('Y-m-d', strtotime('-6 days'));
+        $previousStart = date('Y-m-d', strtotime('-13 days'));
+        $previousEnd   = date('Y-m-d', strtotime('-7 days'));
 
-        $quotes = $this->quoteRequests()->findAll();
-        $brochureLeads = $this->brochureLeads()->findAll();
-        $products = $this->products()->findAll();
+        $qRow = $db->query(
+            'SELECT SUM(CASE WHEN DATE(created_at) BETWEEN ? AND ? THEN 1 ELSE 0 END) AS cur,
+                    SUM(CASE WHEN DATE(created_at) BETWEEN ? AND ? THEN 1 ELSE 0 END) AS prev
+             FROM quote_requests WHERE created_at >= ?',
+            [$currentStart, $todayStr, $previousStart, $previousEnd, $previousStart]
+        )->getRowArray();
 
-        $currentQuotes = 0;
-        $previousQuotes = 0;
-        foreach ($quotes as $quote) {
-            $date = $this->extractDate($quote['created_at'] ?? null);
-            if (! $date) {
-                continue;
-            }
+        $bRow = $db->query(
+            'SELECT SUM(CASE WHEN DATE(created_at) BETWEEN ? AND ? THEN 1 ELSE 0 END) AS cur,
+                    SUM(CASE WHEN DATE(created_at) BETWEEN ? AND ? THEN 1 ELSE 0 END) AS prev
+             FROM brochure_leads WHERE created_at >= ?',
+            [$currentStart, $todayStr, $previousStart, $previousEnd, $previousStart]
+        )->getRowArray();
 
-            if ($date >= $currentStart && $date <= $today) {
-                $currentQuotes++;
-            } elseif ($date >= $previousStart && $date <= $previousEnd) {
-                $previousQuotes++;
-            }
-        }
+        $recentProducts = (int) ($db->query(
+            'SELECT COUNT(*) AS cnt FROM products WHERE DATE(created_at) BETWEEN ? AND ?',
+            [$currentStart, $todayStr]
+        )->getRowArray()['cnt'] ?? 0);
 
-        $currentBrochures = 0;
-        $previousBrochures = 0;
-        foreach ($brochureLeads as $lead) {
-            $date = $this->extractDate($lead['created_at'] ?? null);
-            if (! $date) {
-                continue;
-            }
-
-            if ($date >= $currentStart && $date <= $today) {
-                $currentBrochures++;
-            } elseif ($date >= $previousStart && $date <= $previousEnd) {
-                $previousBrochures++;
-            }
-        }
-
-        $recentProducts = 0;
-        foreach ($products as $product) {
-            $date = $this->extractDate($product['created_at'] ?? null);
-            if ($date && $date >= $currentStart && $date <= $today) {
-                $recentProducts++;
-            }
-        }
-
-        $health = $this->catalogHealthScore($products);
+        $currentQuotes    = (int) ($qRow['cur']  ?? 0);
+        $previousQuotes   = (int) ($qRow['prev'] ?? 0);
+        $currentBrochures  = (int) ($bRow['cur']  ?? 0);
+        $previousBrochures = (int) ($bRow['prev'] ?? 0);
 
         return [
-            'last7Quotes' => $currentQuotes,
-            'quoteChangePercent' => $this->percentageChange($previousQuotes, $currentQuotes),
-            'last7Brochures' => $currentBrochures,
+            'last7Quotes'           => $currentQuotes,
+            'quoteChangePercent'    => $this->percentageChange($previousQuotes, $currentQuotes),
+            'last7Brochures'        => $currentBrochures,
             'brochureChangePercent' => $this->percentageChange($previousBrochures, $currentBrochures),
-            'last7Products' => $recentProducts,
-            'healthScore' => $health,
+            'last7Products'         => $recentProducts,
+            'healthScore'           => $this->catalogHealthScore(),
         ];
     }
 
     private function activityTimeline(int $days = 14): array
     {
+        $db    = \Config\Database::connect();
         $today = new \DateTimeImmutable('today');
         $start = $today->modify('-' . ($days - 1) . ' days');
-        $timeline = [];
+        $since = $start->format('Y-m-d');
 
-        for ($index = 0; $index < $days; $index++) {
-            $date = $start->modify('+' . $index . ' days');
-            $key = $date->format('Y-m-d');
+        $timeline = [];
+        for ($i = 0; $i < $days; $i++) {
+            $date  = $start->modify('+' . $i . ' days');
+            $key   = $date->format('Y-m-d');
             $timeline[$key] = [
-                'date' => $key,
-                'label' => $date->format('d M'),
-                'quotes' => 0,
+                'date'      => $key,
+                'label'     => $date->format('d M'),
+                'quotes'    => 0,
                 'brochures' => 0,
-                'products' => 0,
+                'products'  => 0,
             ];
         }
 
-        foreach ($this->quoteRequests()->findAll() as $quote) {
-            $key = $this->extractDateKey($quote['created_at'] ?? null);
-            if ($key !== null && isset($timeline[$key])) {
-                $timeline[$key]['quotes']++;
+        $fill = static function (array &$tl, array $rows, string $bucket): void {
+            foreach ($rows as $row) {
+                if (isset($tl[$row['d']])) {
+                    $tl[$row['d']][$bucket] = (int) $row['cnt'];
+                }
             }
-        }
+        };
 
-        foreach ($this->brochureLeads()->findAll() as $lead) {
-            $key = $this->extractDateKey($lead['created_at'] ?? null);
-            if ($key !== null && isset($timeline[$key])) {
-                $timeline[$key]['brochures']++;
-            }
-        }
+        $fill($timeline, $db->query(
+            'SELECT DATE(created_at) AS d, COUNT(*) AS cnt FROM quote_requests WHERE created_at >= ? GROUP BY DATE(created_at)',
+            [$since]
+        )->getResultArray(), 'quotes');
 
-        foreach ($this->products()->findAll() as $product) {
-            $key = $this->extractDateKey($product['created_at'] ?? null);
-            if ($key !== null && isset($timeline[$key])) {
-                $timeline[$key]['products']++;
-            }
-        }
+        $fill($timeline, $db->query(
+            'SELECT DATE(created_at) AS d, COUNT(*) AS cnt FROM brochure_leads WHERE created_at >= ? GROUP BY DATE(created_at)',
+            [$since]
+        )->getResultArray(), 'brochures');
+
+        $fill($timeline, $db->query(
+            'SELECT DATE(created_at) AS d, COUNT(*) AS cnt FROM products WHERE created_at >= ? GROUP BY DATE(created_at)',
+            [$since]
+        )->getResultArray(), 'products');
 
         return array_values($timeline);
     }
 
     private function topRequestedProducts(int $limit = 5): array
     {
-        $aggregate = [];
+        $db   = \Config\Database::connect();
+        $rows = $db->query(
+            "SELECT COALESCE(NULLIF(TRIM(product_name),''), 'Unnamed Product') AS name,
+                    COUNT(*) AS requests,
+                    SUM(quantity) AS quantity
+             FROM quote_request_items
+             GROUP BY COALESCE(NULLIF(TRIM(product_name),''), 'Unnamed Product')
+             ORDER BY quantity DESC, requests DESC, name ASC
+             LIMIT ?",
+            [$limit]
+        )->getResultArray();
 
-        foreach ($this->quoteItems()->findAll() as $item) {
-            $name = trim((string) ($item['product_name'] ?? ''));
-            if ($name === '') {
-                $name = 'Unnamed Product';
-            }
-
-            if (! isset($aggregate[$name])) {
-                $aggregate[$name] = [
-                    'name' => $name,
-                    'requests' => 0,
-                    'quantity' => 0,
-                ];
-            }
-
-            $aggregate[$name]['requests']++;
-            $aggregate[$name]['quantity'] += (int) ($item['quantity'] ?? 0);
-        }
-
-        usort($aggregate, static function (array $left, array $right): int {
-            if ($left['quantity'] !== $right['quantity']) {
-                return $right['quantity'] <=> $left['quantity'];
-            }
-
-            if ($left['requests'] !== $right['requests']) {
-                return $right['requests'] <=> $left['requests'];
-            }
-
-            return strcmp($left['name'], $right['name']);
-        });
-
-        return array_slice(array_values($aggregate), 0, $limit);
+        return array_map(
+            static fn($r) => [
+                'name'     => $r['name'],
+                'requests' => (int) $r['requests'],
+                'quantity' => (int) $r['quantity'],
+            ],
+            $rows
+        );
     }
 
     private function sourcePageBreakdown(int $limit = 5): array
     {
-        $aggregate = [];
+        $db   = \Config\Database::connect();
+        $rows = $db->query(
+            "SELECT COALESCE(NULLIF(TRIM(source_page),''), 'Direct submission') AS source,
+                    COUNT(*) AS cnt
+             FROM quote_requests
+             GROUP BY COALESCE(NULLIF(TRIM(source_page),''), 'Direct submission')
+             ORDER BY cnt DESC
+             LIMIT ?",
+            [$limit]
+        )->getResultArray();
 
-        foreach ($this->quoteRequests()->findAll() as $quote) {
-            $source = trim((string) ($quote['source_page'] ?? ''));
-            if ($source === '') {
-                $source = 'Direct submission';
-            }
-
-            $aggregate[$source] = ($aggregate[$source] ?? 0) + 1;
-        }
-
-        arsort($aggregate);
-
-        $rows = [];
-        foreach (array_slice($aggregate, 0, $limit, true) as $source => $count) {
-            $rows[] = [
-                'source' => $source,
-                'count' => $count,
-            ];
-        }
-
-        return $rows;
+        return array_map(
+            static fn($r) => ['source' => $r['source'], 'count' => (int) $r['cnt']],
+            $rows
+        );
     }
 
-    private function catalogHealthScore(array $products): int
+    private function catalogHealthScore(): int
     {
-        if ($products === []) {
+        $db  = \Config\Database::connect();
+        $row = $db->query(
+            "SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active,
+                SUM(CASE WHEN TRIM(COALESCE(sku,''))         != '' THEN 1 ELSE 0 END) AS has_sku,
+                SUM(CASE WHEN TRIM(COALESCE(image_url,''))   != '' THEN 1 ELSE 0 END) AS has_image,
+                SUM(CASE WHEN TRIM(COALESCE(short_description,'')) != ''
+                           OR  TRIM(COALESCE(description,''))       != ''
+                         THEN 1 ELSE 0 END) AS has_desc
+             FROM products"
+        )->getRowArray();
+
+        $total = (int) ($row['total'] ?? 0);
+        if ($total === 0) {
             return 0;
         }
 
-        $points = 0.0;
-        $max = count($products) * 4;
+        $points = (int) ($row['active']    ?? 0)
+                + (int) ($row['has_sku']   ?? 0)
+                + (int) ($row['has_image'] ?? 0)
+                + (int) ($row['has_desc']  ?? 0);
 
-        foreach ($products as $product) {
-            if ((int) ($product['is_active'] ?? 0) === 1) {
-                $points += 1;
-            }
-            if (trim((string) ($product['sku'] ?? '')) !== '') {
-                $points += 1;
-            }
-            if (trim((string) ($product['image_url'] ?? '')) !== '') {
-                $points += 1;
-            }
-            if (
-                trim((string) ($product['short_description'] ?? '')) !== ''
-                || trim((string) ($product['description'] ?? '')) !== ''
-            ) {
-                $points += 1;
-            }
-        }
-
-        return (int) round(($points / $max) * 100);
+        return (int) round(($points / ($total * 4)) * 100);
     }
 
     private function percentageChange(int $previous, int $current): int
@@ -1344,27 +1391,6 @@ class AdminController extends Controller
         }
 
         return (int) round((($current - $previous) / $previous) * 100);
-    }
-
-    private function extractDateKey($value): ?string
-    {
-        $date = $this->extractDate($value);
-
-        return $date?->format('Y-m-d');
-    }
-
-    private function extractDate($value): ?\DateTimeImmutable
-    {
-        if (! is_string($value) || trim($value) === '') {
-            return null;
-        }
-
-        $timestamp = strtotime($value);
-        if ($timestamp === false) {
-            return null;
-        }
-
-        return (new \DateTimeImmutable())->setTimestamp($timestamp)->setTime(0, 0);
     }
 
     private function importProductRows(array $rows): array

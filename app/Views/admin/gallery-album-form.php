@@ -29,7 +29,7 @@ $formAction = $isEdit ? '/admin/gallery/' . (int) $album['id'] : '/admin/gallery
         </div>
     </div>
 
-    <form method="post" action="<?= esc($formAction) ?>" class="admin-form-grid">
+    <form method="post" action="<?= esc($formAction) ?>" class="admin-form-grid" enctype="multipart/form-data">
         <?= csrf_field() ?>
 
         <div class="form-group form-full">
@@ -63,13 +63,35 @@ $formAction = $isEdit ? '/admin/gallery/' . (int) $album['id'] : '/admin/gallery
         </div>
 
         <div class="form-group">
-            <label for="ga-cover">Cover Image URL</label>
-            <input id="ga-cover" type="text" name="cover_image_url" value="<?= esc(old('cover_image_url', $album['cover_image_url'] ?? '')) ?>" placeholder="/assets/images/b&w.png">
+            <label>Cover Image</label>
+            <input type="file" name="cover_image_file" id="ga-cover-file" accept="image/*"
+                   onchange="previewAlbumUpload(this,'ga-cover-preview')" style="margin-bottom:8px">
+            <?php if ($isEdit && ! empty($album['cover_image_url'])): ?>
+                <img id="ga-cover-preview" src="<?= esc($album['cover_image_url']) ?>"
+                     alt="Cover preview" style="max-width:160px;max-height:110px;border-radius:8px;display:block;margin-bottom:6px;border:1.5px solid var(--adm-border)">
+            <?php else: ?>
+                <img id="ga-cover-preview" src="" alt="" style="max-width:160px;max-height:110px;border-radius:8px;display:none;margin-bottom:6px;border:1.5px solid var(--adm-border)">
+            <?php endif; ?>
+            <p class="adm-field-hint" style="margin:0 0 6px">Or enter an existing image URL:</p>
+            <input id="ga-cover" type="text" name="cover_image_url"
+                   value="<?= esc(old('cover_image_url', $album['cover_image_url'] ?? '')) ?>"
+                   placeholder="/assets/images/b&w.png">
         </div>
 
         <div class="form-group">
-            <label for="ga-hero">Hero Image URL</label>
-            <input id="ga-hero" type="text" name="hero_image_url" value="<?= esc(old('hero_image_url', $album['hero_image_url'] ?? '')) ?>" placeholder="/assets/images/photo1.webp">
+            <label>Hero Image</label>
+            <input type="file" name="hero_image_file" id="ga-hero-file" accept="image/*"
+                   onchange="previewAlbumUpload(this,'ga-hero-preview')" style="margin-bottom:8px">
+            <?php if ($isEdit && ! empty($album['hero_image_url'])): ?>
+                <img id="ga-hero-preview" src="<?= esc($album['hero_image_url']) ?>"
+                     alt="Hero preview" style="max-width:160px;max-height:110px;border-radius:8px;display:block;margin-bottom:6px;border:1.5px solid var(--adm-border)">
+            <?php else: ?>
+                <img id="ga-hero-preview" src="" alt="" style="max-width:160px;max-height:110px;border-radius:8px;display:none;margin-bottom:6px;border:1.5px solid var(--adm-border)">
+            <?php endif; ?>
+            <p class="adm-field-hint" style="margin:0 0 6px">Or enter an existing image URL:</p>
+            <input id="ga-hero" type="text" name="hero_image_url"
+                   value="<?= esc(old('hero_image_url', $album['hero_image_url'] ?? '')) ?>"
+                   placeholder="/assets/images/photo1.webp">
         </div>
 
         <div class="form-group">
@@ -95,4 +117,21 @@ $formAction = $isEdit ? '/admin/gallery/' . (int) $album['id'] : '/admin/gallery
         </div>
     </form>
 </section>
+
+<script>
+function previewAlbumUpload(input, previewId) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var img = document.getElementById(previewId);
+            img.src = e.target.result;
+            img.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+        // Clear the paired URL text field
+        var urlField = input.id === 'ga-cover-file' ? 'ga-cover' : 'ga-hero';
+        document.getElementById(urlField).value = '';
+    }
+}
+</script>
 <?php $this->endSection() ?>

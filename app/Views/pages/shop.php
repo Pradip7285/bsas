@@ -146,8 +146,11 @@
                 <?php foreach ($products as $product): ?>
                     <article class="sp-card">
                         <a href="/e-shop/product/<?= esc($product['slug']) ?>" class="sp-card-img-wrap" tabindex="-1">
-                            <div class="sp-card-img"
-                                 style="background-image:url('<?= esc($product['image_url'] ?: '/assets/images/sparePart.webp') ?>')"></div>
+                            <img class="sp-card-img"
+                                 src="<?= esc($product['image_url'] ?: '/assets/images/sparePart.webp') ?>"
+                                 alt="<?= esc($product['name']) ?>"
+                                 loading="lazy"
+                                 decoding="async">
                             <span class="sp-card-cat-badge"><?= esc($product['category']) ?></span>
                             <?php if (! empty($product['price_label'])): ?>
                                 <span class="sp-card-rfq-badge">RFQ</span>

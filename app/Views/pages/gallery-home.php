@@ -42,7 +42,7 @@
                 <article class="gallery-album-directory__card">
                     <a href="/gallery/<?= esc($album['slug']) ?>" class="gallery-album-directory__media">
                         <span class="gallery-album-directory__overlay"></span>
-                        <img src="<?= esc($album['cover_image_url']) ?>" alt="<?= esc($album['name']) ?>">
+                        <img src="<?= esc($album['cover_image_url']) ?>" alt="<?= esc($album['name']) ?>" loading="lazy" decoding="async">
                         <span class="gallery-album-directory__eyebrow"><?= esc($album['eyebrow'] ?: 'Gallery Album') ?></span>
                     </a>
 

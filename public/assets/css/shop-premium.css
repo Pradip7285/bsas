@@ -463,8 +463,8 @@
 .sp-card-img {
   display: block;
   width: 100%; height: 100%;
-  background-size: cover;
-  background-position: center;
+  object-fit: cover;
+  object-position: center;
   transition: transform .38s ease;
 }
 .sp-card:hover .sp-card-img { transform: scale(1.06); }

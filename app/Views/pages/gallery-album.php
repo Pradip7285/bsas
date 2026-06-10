@@ -55,7 +55,7 @@ $primaryFeature = $featuredItems[0] ?? ($items[0] ?? null);
                         };
                         ?>
                         <figure class="gallery-album-grid__item <?= esc($styleClass) ?>">
-                            <img src="<?= esc($item['image_url']) ?>" alt="<?= esc($item['title']) ?>">
+                            <img src="<?= esc($item['image_url']) ?>" alt="<?= esc($item['title']) ?>" loading="lazy" decoding="async">
                             <figcaption>
                                 <?php if (! empty($item['badge_label'])): ?><span><?= esc($item['badge_label']) ?></span><?php endif; ?>
                                 <strong><?= esc($item['title']) ?></strong>

@@ -842,6 +842,15 @@ class AdminController extends Controller
             'price_label'       => 'permit_empty|max_length[80]',
             'sort_order'        => 'permit_empty|integer',
             'is_active'         => 'permit_empty|in_list[0,1]',
+            'stock_status'      => 'permit_empty|in_list[in_stock,made_to_order,out_of_stock]',
+            'lead_time'         => 'permit_empty|max_length[60]',
+            'min_order_qty'     => 'permit_empty|integer|greater_than[0]',
+            'weight'            => 'permit_empty|max_length[60]',
+            'dimensions'        => 'permit_empty|max_length[100]',
+            'material'          => 'permit_empty|max_length[100]',
+            'compatibility'     => 'permit_empty',
+            'datasheet_url'     => 'permit_empty|max_length[500]',
+            'is_featured'       => 'permit_empty|in_list[0,1]',
         ];
 
         if (! $this->validateData($this->request->getPost(), $rules)) {
@@ -908,6 +917,33 @@ class AdminController extends Controller
         // Only write category_id when the column exists (migration has been run).
         if ($resolvedId !== null && $this->columnExists('products', 'category_id')) {
             $payload['category_id'] = $resolvedId;
+        }
+
+        // Advanced fields — guarded so they're silently skipped if the migration hasn't run yet.
+        $specsRaw  = trim((string) $this->request->getPost('specifications'));
+        $specsJson = null;
+        if ($specsRaw !== '') {
+            $decoded = json_decode($specsRaw, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                $specsJson = json_encode($decoded);
+            }
+        }
+        $advanced = [
+            'stock_status'   => $this->request->getPost('stock_status') ?: 'in_stock',
+            'lead_time'      => trim((string) $this->request->getPost('lead_time')),
+            'min_order_qty'  => max(1, (int) ($this->request->getPost('min_order_qty') ?: 1)),
+            'weight'         => trim((string) $this->request->getPost('weight')),
+            'dimensions'     => trim((string) $this->request->getPost('dimensions')),
+            'material'       => trim((string) $this->request->getPost('material')),
+            'compatibility'  => trim((string) $this->request->getPost('compatibility')),
+            'datasheet_url'  => trim((string) $this->request->getPost('datasheet_url')),
+            'specifications' => $specsJson,
+            'is_featured'    => $this->request->getPost('is_featured') === '1' ? 1 : 0,
+        ];
+        foreach ($advanced as $col => $value) {
+            if ($this->columnExists('products', $col)) {
+                $payload[$col] = $value;
+            }
         }
 
         return $payload;

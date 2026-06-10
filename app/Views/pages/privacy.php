@@ -1,5 +1,5 @@
 <section class="section">
-    <div class="policy-wrap">
+    <div class="policy-wrap" data-aos="fade-up">
         <h1>Privacy Policy</h1>
         <p class="policy-date">Effective Date: 25-03-2026</p>
 

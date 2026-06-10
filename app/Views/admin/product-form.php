@@ -1,13 +1,22 @@
 <?php
-$pageTitle   = $product ? 'Edit Product' : 'Add Product';
-$activeNav   = 'product-editor';
+$pageTitle     = $product ? 'Edit Product' : 'Add Product';
+$activeNav     = 'product-editor';
 $mastheadLabel = 'Product Editor';
 $mastheadTitle = $product ? 'Edit product record' : 'New product record';
 $mastheadText  = 'Maintain product metadata, storefront visibility, and catalogue details. Category and SKU are bound to the registry.';
 
-$isEdit      = $product !== null;
-$productId   = $isEdit ? (int) $product['id'] : 0;
-$formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
+$isEdit     = $product !== null;
+$productId  = $isEdit ? (int) $product['id'] : 0;
+$formAction = $isEdit ? '/admin/products/' . $productId : '/admin/products';
+
+// Resolve initial specs for the key-value editor
+$specsInit = [];
+$specsOld  = old('specifications', '');
+if ($specsOld !== '') {
+    $specsInit = json_decode((string) $specsOld, true) ?: [];
+} elseif (! empty($product['specifications'])) {
+    $specsInit = json_decode((string) $product['specifications'], true) ?: [];
+}
 ?>
 <?= $this->extend('admin/layout') ?>
 
@@ -63,8 +72,6 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
 
         <!-- ── Category ── -->
         <?php
-        // For dropdown pre-selection: prefer old() on validation error, then the
-        // resolved/stored category_id. Cast to int so string "5" == int 5 works.
         $preselectedCategoryId = (int) old('category_id', (string) ($product['category_id'] ?? 0));
         ?>
         <?php if (! empty($categories)): ?>
@@ -85,11 +92,6 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
                 </button>
             </div>
         </div>
-        <?php
-        // Hidden fallback: carries the existing category string so the server always
-        // has a category value even if the user submits without changing the dropdown.
-        // validatedPayload() uses category_id first; this is the safety net.
-        ?>
         <input type="hidden" name="category"
                value="<?= esc(old('category', $product['category'] ?? '')) ?>">
         <?php else: ?>
@@ -187,6 +189,120 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
                       placeholder="Detailed product description shown on the product page."><?= esc(old('description', $product['description'] ?? '')) ?></textarea>
         </div>
 
+        <!-- ── Availability & Stock ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">Availability &amp; Stock</h3>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-stock">Stock Status</label>
+            <select id="pf-stock" name="stock_status">
+                <?php
+                $stockOptions = [
+                    'in_stock'      => '🟢 In Stock',
+                    'made_to_order' => '🟡 Made to Order',
+                    'out_of_stock'  => '🔴 Out of Stock',
+                ];
+                $currentStock = old('stock_status', $product['stock_status'] ?? 'in_stock');
+                foreach ($stockOptions as $val => $label):
+                ?>
+                    <option value="<?= $val ?>" <?= $currentStock === $val ? 'selected' : '' ?>>
+                        <?= $label ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-lead">Lead Time</label>
+            <input id="pf-lead" type="text" name="lead_time"
+                   value="<?= esc(old('lead_time', $product['lead_time'] ?? '')) ?>"
+                   placeholder="e.g. Ex-stock, 2–4 weeks, 8–12 weeks">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-moq">Min. Order Qty</label>
+            <input id="pf-moq" type="number" name="min_order_qty" min="1"
+                   value="<?= esc(old('min_order_qty', (string) ($product['min_order_qty'] ?? 1))) ?>">
+            <p class="adm-field-hint">Default 1. Raise for bulk-only products.</p>
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+                <input type="checkbox" name="is_featured" value="1"
+                       style="width:18px;height:18px;accent-color:var(--adm-orange)"
+                       <?= old('is_featured', (string) ($product['is_featured'] ?? 0)) === '1' ? 'checked' : '' ?>>
+                Featured product
+            </label>
+            <p class="adm-field-hint">Featured products can be highlighted in catalogue promotions.</p>
+        </div>
+
+        <!-- ── Technical Details ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">Technical Details</h3>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-weight">Weight</label>
+            <input id="pf-weight" type="text" name="weight"
+                   value="<?= esc(old('weight', $product['weight'] ?? '')) ?>"
+                   placeholder="e.g. 2.5 kg, 450 g">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-dims">Dimensions</label>
+            <input id="pf-dims" type="text" name="dimensions"
+                   value="<?= esc(old('dimensions', $product['dimensions'] ?? '')) ?>"
+                   placeholder="e.g. 120 × 80 × 40 mm">
+        </div>
+
+        <div class="form-group form-full">
+            <label for="pf-material">Material</label>
+            <input id="pf-material" type="text" name="material"
+                   value="<?= esc(old('material', $product['material'] ?? '')) ?>"
+                   placeholder="e.g. Alloy Steel, Stainless Steel 316">
+        </div>
+
+        <!-- ── Compatibility ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">Compatibility</h3>
+        </div>
+
+        <div class="form-group form-full">
+            <label for="pf-compat">Compatible With</label>
+            <textarea id="pf-compat" name="compatibility" style="min-height:80px"
+                      placeholder="List compatible machine makes and models (one per line or comma-separated)..."><?= esc(old('compatibility', $product['compatibility'] ?? '')) ?></textarea>
+            <p class="adm-field-hint">Shown as a Compatibility tab on the product page when populated.</p>
+        </div>
+
+        <!-- ── Documents ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">Documents</h3>
+        </div>
+
+        <div class="form-group form-full">
+            <label for="pf-datasheet">Datasheet URL</label>
+            <input id="pf-datasheet" type="text" name="datasheet_url"
+                   value="<?= esc(old('datasheet_url', $product['datasheet_url'] ?? '')) ?>"
+                   placeholder="https:// or /assets/docs/product-name.pdf">
+            <p class="adm-field-hint">PDF or web link. Shown as a download button on the product page.</p>
+        </div>
+
+        <!-- ── Technical Specifications ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">Technical Specifications</h3>
+            <p class="adm-field-hint" style="margin:4px 0 0">Key-value pairs shown as a structured spec table on the product page.</p>
+        </div>
+
+        <div class="form-full">
+            <div id="specs-rows"></div>
+            <button type="button" id="add-spec-row" class="btn btn-outline"
+                    style="font-size:13px;padding:8px 16px;margin-top:4px">
+                &#43; Add Specification Row
+            </button>
+            <input type="hidden" name="specifications" id="specs-json-input">
+        </div>
+
         <!-- ── Image preview ── -->
         <div class="form-full" id="img-preview-wrap" style="display:none">
             <label>Image Preview</label>
@@ -244,6 +360,8 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
     padding:18px 20px;
 }
 .adm-new-cat-title { font-size:13px; font-weight:800; color:var(--adm-navy); margin-bottom:12px; }
+.adm-section-head { font-size:14px; font-weight:800; color:var(--adm-navy); margin:0 0 4px; letter-spacing:.3px; }
+.adm-section-divider { padding-top:24px; border-top:1.5px solid var(--adm-border); margin-top:8px !important; }
 </style>
 
 <script>
@@ -252,7 +370,7 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
     /* ── Slug auto-generation ── */
     var nameEl    = document.getElementById('pf-name');
     var slugEl    = document.getElementById('pf-slug');
-    var slugEdited = slugEl.value !== '';   // pre-filled on edit
+    var slugEdited = slugEl.value !== '';
 
     function toSlug(str) {
         return str.toLowerCase()
@@ -263,9 +381,7 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
     }
 
     nameEl.addEventListener('input', function () {
-        if (!slugEdited) {
-            slugEl.value = toSlug(this.value);
-        }
+        if (!slugEdited) { slugEl.value = toSlug(this.value); }
     });
     slugEl.addEventListener('input', function () {
         slugEdited = this.value !== '';
@@ -273,7 +389,7 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
 
     /* ── SKU generation ── */
     var skuEl     = document.getElementById('pf-sku');
-    var catEl     = document.getElementById('pf-category');   // null if no categories yet
+    var catEl     = document.getElementById('pf-category');
     var skuStatus = document.getElementById('sku-status');
     var genBtn    = document.getElementById('gen-sku-btn');
 
@@ -301,7 +417,7 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
             .finally(function () { genBtn.disabled = false; });
     });
 
-    /* ── New category inline (only when category dropdown exists) ── */
+    /* ── New category inline ── */
     var toggleBtn  = document.getElementById('new-cat-toggle');
     var newCatRow  = document.getElementById('new-cat-row');
     var newCatName = document.getElementById('new-cat-name');
@@ -309,11 +425,11 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
     var cancelBtn  = document.getElementById('new-cat-cancel');
     var catMsg     = document.getElementById('new-cat-msg');
 
-    if (!toggleBtn) { return; }   // no categories in registry yet — skip all below
+    if (!toggleBtn) { return; }
 
     toggleBtn.addEventListener('click', function () {
         newCatRow.style.display = newCatRow.style.display === 'none' ? 'block' : 'none';
-        if (newCatRow.style.display !== 'none') newCatName.focus();
+        if (newCatRow.style.display !== 'none') { newCatName.focus(); }
     });
 
     cancelBtn.addEventListener('click', function () {
@@ -335,9 +451,8 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
 
         var form = new FormData();
         form.append('name', name);
-        // CSRF token
         var csrfInput = document.querySelector('input[name^="csrf_"]');
-        if (csrfInput) form.append(csrfInput.name, csrfInput.value);
+        if (csrfInput) { form.append(csrfInput.name, csrfInput.value); }
 
         fetch('/admin/categories', { method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.json(); })
@@ -347,7 +462,6 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
                     catMsg.style.color = '#dc2626';
                     return;
                 }
-                // Add option to select and choose it
                 var exists = catEl.querySelector('option[value="' + data.id + '"]');
                 if (!exists) {
                     var opt = document.createElement('option');
@@ -390,14 +504,12 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
                 wrap.style.display = 'block';
             };
             reader.readAsDataURL(input.files[0]);
-            // Clear the URL field so there's no confusion about which source wins
             document.getElementById('pf-image').value = '';
         }
     };
 
-    // Trigger on load for edit page
     var imgInput = document.getElementById('pf-image');
-    if (imgInput && imgInput.value) previewImage(imgInput.value);
+    if (imgInput && imgInput.value) { previewImage(imgInput.value); }
 
     /* ── Short description counter ── */
     var shortEl  = document.getElementById('pf-short');
@@ -410,6 +522,56 @@ $formAction  = $isEdit ? '/admin/products/' . $productId : '/admin/products';
     shortEl.addEventListener('input', updateCount);
     updateCount();
 
+})();
+
+/* ── Specifications key-value editor ── */
+(function () {
+    var existingSpecs = <?= json_encode($specsInit) ?>;
+    var container = document.getElementById('specs-rows');
+    var jsonInput = document.getElementById('specs-json-input');
+    var addBtn    = document.getElementById('add-spec-row');
+
+    function htmlEsc(str) {
+        var d = document.createElement('div');
+        d.textContent = String(str);
+        return d.innerHTML;
+    }
+
+    function serialize() {
+        var rows = container.querySelectorAll('.adm-spec-row');
+        var data = [];
+        rows.forEach(function (row) {
+            var k = row.querySelector('.adm-spec-key').value.trim();
+            var v = row.querySelector('.adm-spec-val').value.trim();
+            if (k !== '') { data.push({ key: k, value: v }); }
+        });
+        jsonInput.value = data.length > 0 ? JSON.stringify(data) : '';
+    }
+
+    function createRow(key, value) {
+        var row = document.createElement('div');
+        row.className = 'adm-spec-row';
+        row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+        row.innerHTML =
+            '<input type="text" class="adm-spec-key" placeholder="Property (e.g. Weight)" value="' + htmlEsc(key || '') + '" style="flex:1;min-width:0">' +
+            '<input type="text" class="adm-spec-val" placeholder="Value (e.g. 2.5 kg)" value="' + htmlEsc(value || '') + '" style="flex:1.5;min-width:0">' +
+            '<button type="button" class="btn btn-outline adm-spec-rm" style="flex-shrink:0;padding:8px 12px;color:#dc2626;border-color:#fca5a5" title="Remove row">&#10005;</button>';
+        row.querySelector('.adm-spec-rm').addEventListener('click', function () {
+            row.remove();
+            serialize();
+        });
+        row.querySelectorAll('input').forEach(function (inp) {
+            inp.addEventListener('input', serialize);
+        });
+        container.appendChild(row);
+    }
+
+    existingSpecs.forEach(function (s) { createRow(s.key || '', s.value || ''); });
+    serialize();
+
+    addBtn.addEventListener('click', function () { createRow('', ''); });
+
+    document.getElementById('product-form').addEventListener('submit', serialize);
 })();
 </script>
 <?php $this->endSection() ?>

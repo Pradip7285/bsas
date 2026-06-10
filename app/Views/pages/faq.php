@@ -6,17 +6,17 @@
             <text x="20" y="28" text-anchor="middle" font-size="22" fill="#111" font-weight="900" font-family="Arial">♌</text>
         </svg>
     </div>
-    <h1>Frequently Asked<br>Questions</h1>
+    <h1 data-aos="fade-up">Frequently Asked<br>Questions</h1>
 </div>
 
 <!-- SEARCH + TABS + FAQ LIST -->
 <section class="section">
-    <div class="faq-search-wrap">
+    <div class="faq-search-wrap" data-aos="fade-up">
         <span>🔍</span>
         <input type="search" placeholder="Search questions...">
     </div>
 
-    <div class="faq-tabs">
+    <div class="faq-tabs" data-aos="fade-up" data-aos-delay="100">
         <button class="faq-tab active" data-cat="all">All</button>
         <button class="faq-tab" data-cat="about">About Us</button>
         <button class="faq-tab" data-cat="products">Products</button>
@@ -29,7 +29,7 @@
         <button class="faq-tab" data-cat="trust">Trust &amp; Partnership</button>
     </div>
 
-    <div class="faq-list">
+    <div class="faq-list" data-aos="fade-up" data-aos-delay="150">
         <details class="faq-item" data-cat="about" open>
             <summary>What does BSAS do?</summary>
             <div class="faq-ans">BSAS engineers, manufactures, and rebuilds critical components for heavy equipment — drilling rigs, mining machines, and construction equipment. We are not a trader or a spare parts catalogue; we are an engineering company that takes accountability for performance outcomes.</div>
@@ -77,7 +77,7 @@
 
         <details class="faq-item" data-cat="3r">
             <summary>What is the BSAS 3R Programme?</summary>
-            <div class="faq-ans">Reuse, Repair, Re-engineer. The 3R Programme is BSAS's approach to sustainable equipment lifecycle management — making the engineering decision on whether to rebuild, repair, or replace based on performance data and application knowledge, not just cost.</div>
+            <div class="faq-ans">Reuse, Repair, Re-engineer. The 3R Programme is BSAS's approach to sustainable equipment lifecycle management — making the engineering decision on whether to rebuild, remanufacture, or replace based on performance data and application knowledge, not just cost.</div>
         </details>
 
         <details class="faq-item" data-cat="lead">
@@ -101,5 +101,5 @@
         </details>
     </div>
 
-    <p style="text-align:center;margin-top:30px;"><a href="/support" class="btn btn-outline">Still got questions? Contact Us ↗</a></p>
+    <p style="text-align:center;margin-top:30px;" data-aos="fade-up"><a href="/support" class="btn btn-outline">Still got questions? Contact Us ↗</a></p>
 </section>

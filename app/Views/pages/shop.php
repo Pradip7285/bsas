@@ -152,6 +152,11 @@
                                  loading="lazy"
                                  decoding="async">
                             <span class="sp-card-cat-badge"><?= esc($product['category']) ?></span>
+                            <?php if (isset($product['stock_status']) && $product['stock_status'] !== 'in_stock'): ?>
+                                <span class="sp-card-stock-badge sp-stock--<?= esc($product['stock_status']) ?>">
+                                    <?= $product['stock_status'] === 'made_to_order' ? 'MTO' : 'Out of Stock' ?>
+                                </span>
+                            <?php endif; ?>
                             <?php if (! empty($product['price_label'])): ?>
                                 <span class="sp-card-rfq-badge">RFQ</span>
                             <?php endif; ?>
@@ -223,6 +228,16 @@
         </div>
     </div>
 </section>
+
+<style>
+.sp-card-stock-badge {
+    position:absolute; top:34px; left:8px;
+    font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+    padding:2px 9px; border-radius:20px; pointer-events:none;
+}
+.sp-stock--made_to_order { background:#fef3c7; color:#92400e; }
+.sp-stock--out_of_stock  { background:#fee2e2; color:#991b1b; }
+</style>
 
 <!-- ── CTA Banner ── -->
 <div class="sp-cta-wrap">

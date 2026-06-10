@@ -9,15 +9,15 @@
 <!-- INTRO STRIP -->
 <div class="equip-intro-strip">
     <div class="equip-intro-inner">
-        <div class="equip-intro-stat">
+        <div class="equip-intro-stat" data-aos="zoom-in">
             <span class="equip-stat-num">500m</span>
             <span class="equip-stat-label">Max Drill Depth</span>
         </div>
-        <div class="equip-intro-stat">
+        <div class="equip-intro-stat" data-aos="zoom-in" data-aos-delay="100">
             <span class="equip-stat-num">41kW</span>
             <span class="equip-stat-label">Engine Power &times;2</span>
         </div>
-        <div class="equip-intro-stat">
+        <div class="equip-intro-stat" data-aos="zoom-in" data-aos-delay="200">
             <span class="equip-stat-num">100%</span>
             <span class="equip-stat-label">Made in India</span>
         </div>
@@ -30,14 +30,14 @@
     <div class="mpr-split">
 
         <!-- LEFT: info -->
-        <div class="mpr-info">
+        <div class="mpr-info" data-aos="fade-right">
             <span class="mpr-kicker">BNH542 &middot; Man Portable Rig</span>
             <h2>The <span class="highlight">MPR</span><br>Man Portable<br>Drill Rig</h2>
             <p>BSAS is proud to manufacture the Man Portable Drill Rig entirely in India — engineered, assembled, and validated at our integrated facility for deployment in exploration operations across mining and geotechnical applications.</p>
             <p>For remote surface and high-altitude exploration where wheeled or tracked equipment cannot reach, and where every kilogram carried matters.</p>
 
             <div class="mpr-features mpr-features-grid">
-                <div class="mpr-feature">
+                <div class="mpr-feature" data-aos="fade-up" data-aos-delay="0">
                     <div class="mpr-feature-icon">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -50,7 +50,7 @@
                         <p>Carry-anywhere modular design</p>
                     </div>
                 </div>
-                <div class="mpr-feature">
+                <div class="mpr-feature" data-aos="fade-up" data-aos-delay="100">
                     <div class="mpr-feature-icon">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M13 2L4 14h7l-1 8 9-12h-7l2-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -61,7 +61,7 @@
                         <p>41 kW &times; 2 diesel prime movers</p>
                     </div>
                 </div>
-                <div class="mpr-feature">
+                <div class="mpr-feature" data-aos="fade-up" data-aos-delay="200">
                     <div class="mpr-feature-icon">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 4v16M8.5 8v8M5 11v5M15.5 8v8M19 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -72,7 +72,7 @@
                         <p>Rapid deploy in any terrain</p>
                     </div>
                 </div>
-                <div class="mpr-feature">
+                <div class="mpr-feature" data-aos="fade-up" data-aos-delay="300">
                     <div class="mpr-feature-icon">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
@@ -93,7 +93,7 @@
         </div>
 
         <!-- RIGHT: image + specs -->
-        <div class="mpr-specs">
+        <div class="mpr-specs" data-aos="fade-left">
             <div class="mpr-product-img">
                 <img src="/assets/images/mpr-rig.webp" alt="BNH542 Man Portable Drill Rig" onerror="this.style.display='none'">
             </div>
@@ -126,7 +126,7 @@
 <!-- MAKE IN INDIA -->
 <section class="section mii-section mii-accent">
     <div class="mii-split">
-        <div class="mii-text">
+        <div class="mii-text" data-aos="fade-right">
             <div class="section-label">Make in India</div>
             <h3>Proudly Built<br>on Indian Soil</h3>
             <p>BSAS's commitment to indigenous engineering capability — reducing dependence on imported equipment and ensuring field-ready performance backed by local accountability.</p>
@@ -136,7 +136,7 @@
                 <li>Local engineering support &amp; field accountability</li>
             </ul>
         </div>
-        <div class="mii-logo">
+        <div class="mii-logo" data-aos="fade-left">
             <img src="/assets/images/Make_In_India.png" alt="Make in India">
         </div>
     </div>
@@ -164,14 +164,14 @@
             <h2>Our<br>Range</h2>
         </div>
         <div class="range-grid">
-            <a href="/support" class="range-card">
+            <a href="/support" class="range-card" data-aos="fade-up">
                 <div class="range-card-info">
                     <span class="range-card-name">UGR</span>
                     <span class="range-card-sub">Underground Drill Rig</span>
                 </div>
                 <span class="range-card-arrow">↗</span>
             </a>
-            <a href="/support" class="range-card">
+            <a href="/support" class="range-card" data-aos="fade-up" data-aos-delay="100">
                 <div class="range-card-info">
                     <span class="range-card-name">BNH500T</span>
                     <span class="range-card-sub">Surface Core Drill Rig</span>
@@ -188,23 +188,23 @@
 <!-- BRANDS -->
 
 <div class="brands-section">
-    <p class="brands-sub">BSAS holds authorised dealerships with <strong>Taiye, Huatai,</strong> and <strong>Sinome</strong> — established manufacturers of exploration and mining equipment with proven performance across global operations. Where the right machine already exists, BSAS brings it to you.</p>
+    <p class="brands-sub" data-aos="fade-up">BSAS holds authorised dealerships with <strong>Taiye, Huatai,</strong> and <strong>Sinome</strong> — established manufacturers of exploration and mining equipment with proven performance across global operations. Where the right machine already exists, BSAS brings it to you.</p>
     <div class="brand-cards">
-        <div class="brand-card">
+        <div class="brand-card" data-aos="fade-up">
             <div class="brand-card-top">
                 <span class="brand-name brand-taiye">&#10753; TAIYE</span>
             </div>
             <p class="brand-card-desc">Specialised drilling and exploration rigs with proven performance across global mining operations.</p>
             <a href="/support" class="brand-card-link">View Range ↗</a>
         </div>
-        <div class="brand-card">
+        <div class="brand-card" data-aos="fade-up" data-aos-delay="100">
             <div class="brand-card-top">
                 <span class="brand-name brand-huatai">&#x2161; HUATAI</span>
             </div>
             <p class="brand-card-desc">Heavy-duty surface and underground drilling equipment engineered for demanding geological conditions.</p>
             <a href="/support" class="brand-card-link">View Range ↗</a>
         </div>
-        <div class="brand-card">
+        <div class="brand-card" data-aos="fade-up" data-aos-delay="200">
             <div class="brand-card-top">
                 <span class="brand-name brand-sinome">Sino<strong>M</strong>e</span>
             </div>

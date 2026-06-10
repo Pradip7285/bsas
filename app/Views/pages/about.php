@@ -9,7 +9,7 @@
 <!-- PROGRESS SECTION -->
 <section class="section">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;">
-        <div>
+        <div data-aos="fade-right">
             <div class="icon-text">
                 <div class="icon-text-icon">⚙️</div>
                 <div>
@@ -19,7 +19,7 @@
                 </div>
             </div>
         </div>
-        <div>
+        <div data-aos="fade-left">
             <div class="icon-text">
                 <div class="icon-text-icon">🔧</div>
                 <div>
@@ -46,26 +46,26 @@
 
 <!-- CAPABILITIES -->
 <section class="section section-grey">
-    <div class="section-label">What We Cover</div>
-    <div class="section-title mb-8">Our Capabilities <span class="accent">Span</span></div>
-    <p class="section-sub">From Component to Complete Lifecycle</p>
+    <div class="section-label" data-aos="fade-up">What We Cover</div>
+    <div class="section-title mb-8" data-aos="fade-up">Our Capabilities <span class="accent">Span</span></div>
+    <p class="section-sub" data-aos="fade-up">From Component to Complete Lifecycle</p>
     <div class="caps-grid">
-        <div class="cap-card">
+        <div class="cap-card" data-aos="fade-up">
             <div class="cap-card-bg bg-workshop"></div>
             <div class="cap-card-overlay"></div>
             <div class="cap-card-content"><h4>Engine rebuild and test-led validation</h4></div>
         </div>
-        <div class="cap-card">
+        <div class="cap-card" data-aos="fade-up" data-aos-delay="100">
             <div class="cap-card-bg bg-equip"></div>
             <div class="cap-card-overlay"></div>
             <div class="cap-card-content"><h4>Transmission, axle, driveline rebuilding</h4></div>
         </div>
-        <div class="cap-card">
+        <div class="cap-card" data-aos="fade-up" data-aos-delay="200">
             <div class="cap-card-bg bg-parts"></div>
             <div class="cap-card-overlay"></div>
             <div class="cap-card-content"><h4>Hydraulic systems repair and calibration</h4></div>
         </div>
-        <div class="cap-card">
+        <div class="cap-card" data-aos="fade-up" data-aos-delay="300">
             <div class="cap-card-bg bg-spare"></div>
             <div class="cap-card-overlay"></div>
             <div class="cap-card-content"><h4>Engineered spare parts solution</h4></div>
@@ -74,7 +74,7 @@
 </section>
 
 <!-- SAFETY FIRST -->
-<div class="safety-dark">
+<div class="safety-dark" data-aos="fade-in">
     <div>
         <h2>Safety <span style="color:var(--orange);">First</span></h2>
         <p>At BSAS, safety isn't a policy — it's an engineering requirement. Every component we design, every part &amp; Equipment we manufacture, and every machine we rebuild is engineered with one non-negotiable principle: <strong style="color:#fff;">it must perform safely under load, under pressure, and under the harshest conditions.</strong></p>
@@ -84,15 +84,15 @@
 
 <section class="section">
     <div class="safety-items">
-        <div class="safety-item">
+        <div class="safety-item" data-aos="zoom-in">
             <div class="safety-item-icon">🦺</div>
             <h4>Personal Protective Equipment</h4>
         </div>
-        <div class="safety-item">
+        <div class="safety-item" data-aos="zoom-in" data-aos-delay="150">
             <div class="safety-item-icon">📋</div>
             <h4>Safety Instruction Manuals</h4>
         </div>
-        <div class="safety-item">
+        <div class="safety-item" data-aos="zoom-in" data-aos-delay="300">
             <div class="safety-item-icon">🧠</div>
             <h4>Physical &amp; Psychological Safety</h4>
         </div>
@@ -101,17 +101,17 @@
 
 <!-- MISSION & VISION -->
 <section class="section section-dark">
-    <div class="section-label">Our Purpose</div>
-    <div class="section-title mb-40">Mission &amp; <span class="accent">Vision</span></div>
+    <div class="section-label" data-aos="fade-up">Our Purpose</div>
+    <div class="section-title mb-40" data-aos="fade-up">Mission &amp; <span class="accent">Vision</span></div>
     <div class="mv-grid">
-        <div class="mv-card">
+        <div class="mv-card" data-aos="fade-up">
             <div class="mv-icon">🎯</div>
             <div>
                 <h4 style="color:#fff;margin-bottom:8px;">Mission</h4>
                 <p style="color:#aaa;font-size:14px;line-height:1.8;">To engineer, rebuild, and manufacture critical heavy-machine systems delivering validated solutions that restore performance and extend lifecycle across mining, ports, and construction.</p>
             </div>
         </div>
-        <div class="mv-card">
+        <div class="mv-card" data-aos="fade-up" data-aos-delay="150">
             <div class="mv-icon">👁️</div>
             <div>
                 <h4 style="color:#fff;margin-bottom:8px;">Vision</h4>
@@ -122,7 +122,7 @@
 </section>
 
 <!-- TRUST. TENACITY. TOGETHERNESS. -->
-<div class="trust-hero">
+<div class="trust-hero" data-aos="fade-in">
     <h2>Trust.<br>Tenacity.<br>Togetherness.</h2>
     <div class="trust-text">
         <div>
@@ -142,25 +142,25 @@
     <div class="section-label">The People</div>
     <div class="section-title text-center mb-40" style="color:var(--orange);">Team</div>
     <div class="team-grid">
-        <div class="team-card">
+        <div class="team-card" data-aos="fade-up">
             <div class="team-photo"></div>
             <div class="team-name">Mr. Soumyadipto Monda</div>
             <div class="team-role">CRM</div>
             <span class="team-dept">Sales</span>
         </div>
-        <div class="team-card">
+        <div class="team-card" data-aos="fade-up" data-aos-delay="100">
             <div class="team-photo"></div>
             <div class="team-name">Mr. Devi Chaudhary</div>
             <div class="team-role">Sales</div>
             <span class="team-dept" style="background:#e33;">Sales</span>
         </div>
-        <div class="team-card">
+        <div class="team-card" data-aos="fade-up" data-aos-delay="200">
             <div class="team-photo"></div>
             <div class="team-name">Mr. Arjun Pal</div>
             <div class="team-role">Purchase</div>
             <span class="team-dept">Purchase</span>
         </div>
-        <div class="team-card">
+        <div class="team-card" data-aos="fade-up" data-aos-delay="300">
             <div class="team-photo"></div>
             <div class="team-name">Mr. Souvik Das</div>
             <div class="team-role">Marketing</div>
@@ -170,7 +170,7 @@
 </section>
 
 <!-- VALIDATED -->
-<div class="validated-section">
+<div class="validated-section" data-aos="fade-in">
     <div class="validated-content">
         <h2>Validated.<br>Verified.<br>Accountable.</h2>
         <p>Quality management systems validated to international manufacturing standards.</p>

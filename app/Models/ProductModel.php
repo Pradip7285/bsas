@@ -22,6 +22,16 @@ class ProductModel extends Model
         'price_label',
         'is_active',
         'sort_order',
+        'stock_status',
+        'lead_time',
+        'min_order_qty',
+        'weight',
+        'dimensions',
+        'material',
+        'compatibility',
+        'datasheet_url',
+        'specifications',
+        'is_featured',
     ];
 
     /** Active products ordered for storefront display. */

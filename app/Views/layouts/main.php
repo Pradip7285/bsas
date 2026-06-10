@@ -9,7 +9,7 @@
     <?php foreach (($extraStyles ?? []) as $style): ?>
         <link rel="stylesheet" href="<?= esc($style) ?>">
     <?php endforeach; ?>
-    <?php if (! empty($needsAos)): ?>
+    <?php if ($active !== 'shop'): ?>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <?php endif; ?>
 </head>
@@ -179,9 +179,9 @@
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
 <script defer src="/assets/js/site.js"></script>
-<?php if (! empty($needsAos)): ?>
+<?php if ($active !== 'shop'): ?>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script>AOS.init();</script>
+<script>AOS.init({ duration: 700, once: true, offset: 60 });</script>
 <?php endif; ?>
 </body>
 </html>

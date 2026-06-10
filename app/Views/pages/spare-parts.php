@@ -13,12 +13,12 @@
 <!-- INTRO -->
 <section class="section">
     <div class="parts-intro">
-        <div>
+        <div data-aos="fade-right">
             <p>With over five decades of combined engineering experience, BSAS brings something no spare parts programme can offer: an engineering brain behind every component. Not a catalogue. Not a sourcing network. A complete engineering, manufacturing, and rebuild capability built around one goal: keeping your machine running longer than expected.</p>
             <p>No multiple vendors. No category confusion. No chasing suppliers across time zones. Every critical component from axles to assemblies, pins to powertrains — engineered, validated, and available in one place.</p>
             <p>Explore and order directly through the <a href="/e-shop" class="accent-link">BSAS E-Shop ↗</a> — your entire engineered spares portfolio, at your fingertips.</p>
         </div>
-        <div>
+        <div data-aos="fade-left">
             <div class="parts-diagram">
                 <p style="font-weight:700;font-size:14px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;">Engineered Components</p>
                 <div class="parts-tag-row">
@@ -56,9 +56,9 @@
 
 <!-- SUPPLY NETWORK -->
 <section class="section">
-    <h2 class="supply-title">Engineered and manufactured through a <span style="color:var(--orange);">globally qualified supply network.</span></h2>
+    <h2 class="supply-title" data-aos="fade-up">Engineered and manufactured through a <span style="color:var(--orange);">globally qualified supply network.</span></h2>
     <div class="supply-rows">
-        <div class="supply-row">
+        <div class="supply-row" data-aos="fade-up">
             <div class="supply-row-img bg-parts"><img src="../assets/images/Store2.webp" alt="Parts"></div>
             <div class="supply-row-text">
                 <b>1.5M</b>
@@ -66,7 +66,7 @@
                 <p>A vast inventory at your fingertips — ensuring instant availability, reduced downtime, and uninterrupted operations when it matters most.</p>
             </div>
         </div>
-        <div class="supply-row reverse">
+        <div class="supply-row reverse" data-aos="fade-up">
             <div class="supply-row-text" style="text-align:right;">
                 <b>1.5M</b>
                 <strong>Parts Ready Stocked</strong>

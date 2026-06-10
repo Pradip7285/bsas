@@ -8,7 +8,7 @@
 
 <!-- INTRO -->
 <section class="section">
-    <p class="support-intro">Should you have any questions or should you require assistance, or should you wish to order free catalogues or the newsletter, please fill in the contact form and send us your message. We will answer your request as quickly as possible. Thank you!</p>
+    <p class="support-intro" data-aos="fade-up">Should you have any questions or should you require assistance, or should you wish to order free catalogues or the newsletter, please fill in the contact form and send us your message. We will answer your request as quickly as possible. Thank you!</p>
 
     <?php if (session()->getFlashdata('success')): ?>
         <div class="success-banner"><?= esc(session()->getFlashdata('success')) ?></div>
@@ -18,7 +18,7 @@
         <div class="error-banner"><?= esc(implode(' ', $errors)) ?></div>
     <?php endif; ?>
 
-    <div class="contact-form-card">
+    <div class="contact-form-card" data-aos="fade-up">
         <form method="post" action="/support/quote">
             <?= csrf_field() ?>
             <div class="form-grid">
@@ -66,7 +66,7 @@
 </section>
 
 <!-- FAQ MINI -->
-<section class="section section-grey faq-mini">
+<section class="section section-grey faq-mini" data-aos="fade-up">
     <h2>FAQ</h2>
     <div class="faq-list">
         <details class="faq-item">
@@ -86,7 +86,7 @@
 </section>
 
 <!-- CONTACT INFO -->
-<section class="section">
+<section class="section" data-aos="fade-up">
     <div class="contact-info-card">
         <div class="contact-info-labels">
             <p>Telephone :</p>

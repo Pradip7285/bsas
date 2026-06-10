@@ -9,7 +9,7 @@
 <!-- INTRO -->
 <section class="section">
     <div class="r3-intro">
-        <div>
+        <div data-aos="fade-right">
             <p>Sustainability in heavy industry is not a report. It is not a pledge — it is a decision made at the workbench.</p>
             <p>When an engineer chooses to restore a component instead of discarding it, to improve a design instead of copying it, and to plan for lifecycle instead of reacting to failure.</p>
             <p>BSAS has always operated this way. The 3R Programme is simply the name we give it.</p>
@@ -19,7 +19,7 @@
                 <li>Re-engineer</li>
             </ul>
         </div>
-        <div class="r3-img-stack">
+        <div class="r3-img-stack" data-aos="fade-left">
             <div class="r3-img bg-workshop"></div>
             <div class="r3-img bg-equip"></div>
         </div>
@@ -29,8 +29,8 @@
 <!-- WHY 3R IS DIFFERENT -->
 <section class="section section-grey">
     <div class="why-3r">
-        <div class="why-3r-img bg-parts"></div>
-        <div class="why-3r-text">
+        <div class="why-3r-img bg-parts" data-aos="fade-right"></div>
+        <div class="why-3r-text" data-aos="fade-left">
             <h3>Why 3R Is Different at <span class="accent">BSAS</span></h3>
             <p>BSAS has all three capabilities under one engineering brain.</p>
             <ul>
@@ -56,21 +56,21 @@
 
 <!-- QUOTE -->
 <section class="section">
-    <div class="quote-block">"We do not measure our sustainability in pledges. We measure it in machine hours extended, components restored, and failures prevented."</div>
+    <div class="quote-block" data-aos="fade-up">"We do not measure our sustainability in pledges. We measure it in machine hours extended, components restored, and failures prevented."</div>
 </section>
 
 <!-- STATS -->
 <section class="section section-dark">
     <div class="stats-row">
-        <div>
+        <div data-aos="zoom-in">
             <div class="stat-num">20+</div>
             <div class="stat-label">Annual Equipment Rebuild Capability</div>
         </div>
-        <div>
+        <div data-aos="zoom-in" data-aos-delay="150">
             <div class="stat-num">50+</div>
             <div class="stat-label">Components Validated Through Testing Protocols</div>
         </div>
-        <div>
+        <div data-aos="zoom-in" data-aos-delay="300">
             <div class="stat-num">25+</div>
             <div class="stat-label">Annual Equipment Manufacturing Capacity</div>
         </div>

@@ -251,9 +251,9 @@ if ($activityTimeline !== []) {
                     <p>Groups currently in catalogue.</p>
                 </article>
                 <article class="admin-catalog-strip-card">
-                    <span>Current Result Set</span>
-                    <strong><?= esc((string) count($products)) ?></strong>
-                    <p>Products returned by current filters.</p>
+                    <span>Showing</span>
+                    <strong><?= esc((string) count($products)) ?><?= count($products) === 50 && $stats['totalProducts'] > 50 ? '+' : '' ?></strong>
+                    <p>Products in current view (max 50). <a href="/admin/products" style="color:inherit;text-decoration:underline">See all</a></p>
                 </article>
             </div>
 
@@ -285,7 +285,11 @@ if ($activityTimeline !== []) {
             <div class="admin-catalog-table-head">
                 <div>
                     <h3>Listing Results</h3>
-                    <p>Product master records ordered for quick review and editing.</p>
+                    <?php if (count($products) === 50 && $stats['totalProducts'] > 50): ?>
+                        <p>Showing first 50 products. <a href="/admin/products" style="color:var(--adm-orange)">View full catalogue &rarr;</a></p>
+                    <?php else: ?>
+                        <p>Product master records ordered for quick review and editing.</p>
+                    <?php endif; ?>
                 </div>
                 <span class="admin-table-count"><?= esc((string) count($products)) ?> items</span>
             </div>

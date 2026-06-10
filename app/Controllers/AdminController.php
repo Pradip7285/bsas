@@ -103,15 +103,24 @@ class AdminController extends Controller
             ? []
             : $this->quoteItems()->whereIn('quote_request_id', $recentQuoteIds)->orderBy('created_at', 'ASC')->findAll();
 
+        // Cap the dashboard product list at 50 rows. The full filterable list lives
+        // at /admin/products. Without a limit, this query loads every product row
+        // into PHP memory on every dashboard load.
+        $dashboardProducts = $builder->limit(50)->findAll();
+
+        // Use the categories table (small, indexed) for the filter dropdown instead
+        // of DISTINCT on the products VARCHAR column.
+        $categoryNames = array_column($this->loadCategories(), 'name');
+
         return view('admin/dashboard', [
-            'products' => $builder->findAll(),
+            'products' => $dashboardProducts,
             'quotes' => $recentQuotes,
             'quoteItemsByRequest' => $this->groupQuoteItemsByRequest($recentQuoteItems),
             'brochureLeads' => $this->brochureLeads()->orderBy('created_at', 'DESC')->findAll(8),
             'productSearch' => $productSearch,
             'activeStatus' => $status,
             'activeCategory' => $category,
-            'categories' => $this->products()->categories(),
+            'categories' => $categoryNames,
             'stats' => $this->dashboardStats(),
             'catalogAudit' => $this->catalogAudit(),
             'categoryBreakdown' => $this->productCategoryBreakdown(),

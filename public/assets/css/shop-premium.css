@@ -571,6 +571,25 @@
 .sp-empty p { font-size: 14px; color: var(--sp-faint); max-width: 38ch; margin: 0 auto 24px; }
 
 /* ============================================================
+   PAGINATION
+   ============================================================ */
+.sp-pagination-wrap { padding: 24px 5vw 0; }
+.sp-pagination {
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.sp-page-info {
+  font-size: 14px;
+  color: var(--sp-faint);
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+/* ============================================================
    PROMO CARDS
    ============================================================ */
 .sp-promo-section { padding: 32px 5vw 0; }

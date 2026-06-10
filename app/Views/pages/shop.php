@@ -181,6 +181,23 @@
     </div>
 </section>
 
+<!-- ── Pagination ── -->
+<?php if ($pageCount > 1): ?>
+<nav class="sp-pagination-wrap" aria-label="Product catalogue pages">
+    <div class="sp-pagination">
+        <?php if ($page > 1): ?>
+            <a href="/e-shop?<?= esc(http_build_query(['q' => $searchQuery, 'category' => $activeCategory, 'sort' => $activeSort, 'page' => $page - 1])) ?>"
+               class="btn btn-outline">&#8592; Previous</a>
+        <?php endif; ?>
+        <span class="sp-page-info">Page <?= esc((string) $page) ?> of <?= esc((string) $pageCount) ?></span>
+        <?php if ($page < $pageCount): ?>
+            <a href="/e-shop?<?= esc(http_build_query(['q' => $searchQuery, 'category' => $activeCategory, 'sort' => $activeSort, 'page' => $page + 1])) ?>"
+               class="btn btn-outline">Next &#8594;</a>
+        <?php endif; ?>
+    </div>
+</nav>
+<?php endif; ?>
+
 <!-- ── Promo cards ── -->
 <section class="sp-promo-section">
     <div class="sp-promo-inner">

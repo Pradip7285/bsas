@@ -3,7 +3,6 @@
 namespace App\Controllers;
 
 use App\Models\BrochureLeadModel;
-use App\Models\CategoryModel;
 use App\Models\GalleryAlbumModel;
 use App\Models\GalleryItemModel;
 use App\Models\ProductModel;
@@ -29,61 +28,54 @@ class Website extends Controller
     public function services() { return $this->page('services', 'Reliable Field Services'); }
     public function shop()
     {
-        $model = $this->products();
-        $query = trim((string) $this->request->getGet('q'));
+        $query    = trim((string) $this->request->getGet('q'));
         $category = trim((string) $this->request->getGet('category'));
-        $sort = trim((string) $this->request->getGet('sort'));
+        $sort     = trim((string) $this->request->getGet('sort'));
+        $page     = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage  = 100;
 
-        $builder = $model->active();
+        // COUNT query — separate builder so state doesn't bleed into the data query.
+        $totalCount = $this->buildShopQuery($query, $category)->countAllResults();
+        $pageCount  = max(1, (int) ceil($totalCount / $perPage));
+        $page       = min($page, $pageCount);
 
-        if ($query !== '') {
-            $builder->groupStart()
-                ->like('name', $query)
-                ->orLike('sku', $query)
-                ->orLike('short_description', $query)
-                ->orLike('description', $query)
-                ->groupEnd();
-        }
-
-        if ($category !== '') {
-            $builder->where('category', $category);
-        }
+        // Data query with user-selected sort and pagination.
+        $dataBuilder = $this->buildShopQuery($query, $category);
 
         switch ($sort) {
             case 'name_desc':
-                $builder->orderBy('name', 'DESC');
+                $dataBuilder->orderBy('name', 'DESC');
                 break;
 
             case 'category':
-                $builder->orderBy('category', 'ASC')->orderBy('name', 'ASC');
+                $dataBuilder->orderBy('category', 'ASC')->orderBy('name', 'ASC');
                 break;
 
             case 'name_asc':
             default:
                 $sort = 'name_asc';
-                $builder->orderBy('name', 'ASC');
+                $dataBuilder->orderBy('name', 'ASC');
                 break;
         }
 
-        $products          = $builder->findAll();
+        $products          = $dataBuilder->findAll($perPage, ($page - 1) * $perPage);
         $categorySummaries = $this->categorySummaries();
 
-        // Names in sort_order for the filter dropdown.
-        // Falls back to DISTINCT strings if the categories table isn't ready yet.
-        $categories = $this->storefrontCategoryNames();
-
         return $this->page('shop', 'E-Shop', [
-            'products' => $products,
-            'categories' => $categories,
+            'products'          => $products,
+            'categories'        => array_column($categorySummaries, 'name'),
             'categorySummaries' => $categorySummaries,
-            'searchQuery' => $query,
-            'activeCategory' => $category,
-            'activeSort' => $sort,
-            'cartCount' => $this->cartCount(),
-            'resultCount' => count($products),
-            'totalProducts' => array_sum(array_column($categorySummaries, 'count')),
-            'filterSummary' => $this->shopFilterSummary($query, $category),
-            'active' => 'shop',
+            'searchQuery'       => $query,
+            'activeCategory'    => $category,
+            'activeSort'        => $sort,
+            'cartCount'         => $this->cartCount(),
+            'resultCount'       => $totalCount,
+            'page'              => $page,
+            'pageCount'         => $pageCount,
+            'perPage'           => $perPage,
+            'totalProducts'     => array_sum(array_column($categorySummaries, 'count')),
+            'filterSummary'     => $this->shopFilterSummary($query, $category),
+            'active'            => 'shop',
         ]);
     }
 
@@ -129,7 +121,7 @@ class Website extends Controller
 
         $items = $albumIds === []
             ? []
-            : $this->galleryItemModel()->active()->whereIn('album_id', $albumIds)->findAll();
+            : $this->galleryItemModel()->active()->select('album_id, image_url')->whereIn('album_id', $albumIds)->findAll();
 
         $itemsByAlbum = [];
         foreach ($items as $item) {
@@ -502,70 +494,79 @@ class Website extends Controller
         return $items;
     }
 
-    /**
-     * Category summaries for the category rail in the shop.
-     * Uses the CategoryModel sort_order when available so the rail respects
-     * the admin-defined order. Falls back to alphabetical if not migrated yet.
-     */
-    private function categorySummaries(): array
+    /** Returns a ProductModel builder with search/filter conditions applied. */
+    private function buildShopQuery(string $query, string $category): ProductModel
     {
-        // Product counts keyed by category name string.
-        $rows = $this->products()
-            ->select('category, COUNT(*) as total')
-            ->where('is_active', 1)
-            ->groupBy('category')
-            ->findAll();
+        $builder = $this->products()->active();
 
-        $counts = [];
-        foreach ($rows as $row) {
-            $counts[(string) $row['category']] = (int) $row['total'];
+        if ($query !== '') {
+            $builder->groupStart()
+                ->like('name', $query)
+                ->orLike('sku', $query)
+                ->orLike('short_description', $query)
+                ->orLike('description', $query)
+                ->groupEnd();
         }
 
-        // Try to get the admin-defined order from the categories table.
-        try {
-            $registered = (new CategoryModel())->active()->findAll();
-
-            $summaries = [];
-            foreach ($registered as $cat) {
-                $name = (string) $cat['name'];
-                if (isset($counts[$name]) && $counts[$name] > 0) {
-                    $summaries[] = ['name' => $name, 'count' => $counts[$name]];
-                }
-            }
-
-            // Append any product categories not yet in the registry (legacy).
-            $registeredNames = array_column($registered, 'name');
-            foreach ($counts as $name => $count) {
-                if (! in_array($name, $registeredNames, true) && $count > 0) {
-                    $summaries[] = ['name' => $name, 'count' => $count];
-                }
-            }
-
-            return $summaries;
-        } catch (\Throwable $e) {
-            // categories table not yet migrated — fall back to alphabetical.
-            $summaries = [];
-            foreach ($counts as $name => $count) {
-                $summaries[] = ['name' => $name, 'count' => $count];
-            }
-            usort($summaries, static fn($a, $b) => strcmp($a['name'], $b['name']));
-
-            return $summaries;
+        if ($category !== '') {
+            $builder->where('category', $category);
         }
+
+        return $builder;
     }
 
     /**
-     * Ordered list of category name strings for the shop filter dropdown.
-     * Uses CategoryModel sort_order; falls back to ProductModel DISTINCT.
+     * Category summaries (name + product count) in admin-defined sort_order.
+     * Single JOIN query replaces the previous two-ORM-call approach.
+     * Falls back to a product-only aggregation if the categories table isn't migrated yet.
+     * The caller derives the category name list with array_column($result, 'name').
      */
-    private function storefrontCategoryNames(): array
+    private function categorySummaries(): array
     {
-        try {
-            $cats = (new CategoryModel())->active()->findAll();
+        $db = db_connect();
 
-            return array_values(array_map(static fn(array $c): string => (string) $c['name'], $cats));
+        try {
+            // Registered categories in admin sort order, joined with active product counts.
+            $rows = $db->query("
+                SELECT c.name, COUNT(p.id) AS `count`
+                FROM categories c
+                LEFT JOIN products p ON p.category = c.name AND p.is_active = 1
+                WHERE c.is_active = 1
+                GROUP BY c.id, c.name, c.sort_order
+                HAVING COUNT(p.id) > 0
+                ORDER BY c.sort_order ASC, c.name ASC
+            ")->getResultArray();
+
+            // Append product categories not yet registered (legacy / bulk-imported rows).
+            $orphans = $db->query("
+                SELECT category AS name, COUNT(*) AS `count`
+                FROM products
+                WHERE is_active = 1
+                AND category NOT IN (SELECT name FROM categories WHERE is_active = 1)
+                GROUP BY category
+                HAVING COUNT(*) > 0
+                ORDER BY category ASC
+            ")->getResultArray();
+
+            return array_map(
+                static fn(array $r): array => ['name' => (string) $r['name'], 'count' => (int) $r['count']],
+                array_merge($rows, $orphans)
+            );
         } catch (\Throwable $e) {
-            return $this->products()->categories();
+            // categories table not yet migrated — fall back to product-only aggregation.
+            $rows = $db->query("
+                SELECT category AS name, COUNT(*) AS `count`
+                FROM products
+                WHERE is_active = 1
+                GROUP BY category
+                HAVING COUNT(*) > 0
+                ORDER BY category ASC
+            ")->getResultArray();
+
+            return array_map(
+                static fn(array $r): array => ['name' => (string) $r['name'], 'count' => (int) $r['count']],
+                $rows
+            );
         }
     }
 

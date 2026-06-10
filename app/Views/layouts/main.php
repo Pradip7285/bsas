@@ -9,8 +9,9 @@
     <?php foreach (($extraStyles ?? []) as $style): ?>
         <link rel="stylesheet" href="<?= esc($style) ?>">
     <?php endforeach; ?>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide@3.6.2/dist/css/glide.core.min.css">
+    <?php if (! empty($needsAos)): ?>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <?php endif; ?>
 </head>
 <?php $isShopExperience = $active === 'shop'; ?>
 <?php $currentPath = trim(uri_string(), '/'); ?>
@@ -176,52 +177,11 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@glidejs/glide@3.6.2/dist/glide.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
-<script src="/assets/js/site.js"></script>
-<script>
-(function(){
-    var el = document.getElementById('equipGlide');
-    if (!el) return;
-    var glide = new Glide('#equipGlide', {
-        type: 'carousel',
-        perView: 1,
-        focusAt: 0,
-        gap: 0,
-        peek: { before: 260, after: 260 },
-        autoplay: 3500,
-        animationDuration: 600,
-        breakpoints: {
-            768: { peek: { before: 70, after: 70 } }
-        }
-    });
-
-    var POS = ['is-active', 'is-prev', 'is-next'];
-
-    function apply3D() {
-        var slides = Array.from(
-            el.querySelectorAll('.glide__slide:not(.glide__slide--clone).equip-slide')
-        );
-        var n = slides.length;
-        var idx = glide.index;
-
-        slides.forEach(function(slide, i) {
-            slide.classList.remove.apply(slide.classList, POS);
-
-            var diff = ((i - idx) % n + n) % n;
-            if (diff === 0) slide.classList.add('is-active');
-            else if (diff === 1) slide.classList.add('is-next');
-            else if (diff === n - 1) slide.classList.add('is-prev');
-        });
-    }
-
-    glide.on(['mount.after', 'run'], apply3D);
-    glide.mount();
-})();
-</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+<script defer src="/assets/js/site.js"></script>
+<?php if (! empty($needsAos)): ?>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script>
-  AOS.init();
-</script>
+<script>AOS.init();</script>
+<?php endif; ?>
 </body>
 </html>

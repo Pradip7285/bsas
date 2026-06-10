@@ -21,7 +21,7 @@ class Website extends Controller
         'address' => '21, C.I.M. Lane, Raniganj, WB 713347'
     ];
 
-    public function home() { return $this->page('home', 'Engineered for Heavy Flow'); }
+    public function home() { return $this->page('home', 'Engineered for Heavy Flow', ['needsAos' => true]); }
     public function about() { return $this->page('about', 'We Manufacture, We Rebuild, We Engineer'); }
     public function spareParts() { return $this->page('spare-parts', 'One Engineering Brain, Every Critical Spare'); }
     public function equipment() { return $this->page('equipment', 'Advance Drilling Solutions'); }

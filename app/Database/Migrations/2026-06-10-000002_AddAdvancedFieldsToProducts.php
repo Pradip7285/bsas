@@ -76,12 +76,12 @@ class AddAdvancedFieldsToProducts extends Migration
             ],
         ];
 
-        $this->db->addColumn('products', $fields);
+        $this->forge->addColumn('products', $fields);
     }
 
     public function down(): void
     {
-        $this->db->dropColumn('products', [
+        $this->forge->dropColumn('products', [
             'stock_status',
             'lead_time',
             'min_order_qty',

@@ -32,7 +32,7 @@
             </div>
         </a>
 
-        <button class="nav-toggle" aria-label="Toggle menu">
+        <button class="nav-toggle" type="button" aria-label="Toggle menu" aria-controls="main-nav" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
 
@@ -45,6 +45,7 @@
             <a href="/gallery" class="<?= $active === 'gallery' ? 'active' : '' ?>">Gallery</a>
             <a href="/support" class="<?= $active === 'support' ? 'active' : '' ?>">Support</a>
         </nav>
+        <button class="nav-backdrop" type="button" aria-label="Close menu" hidden></button>
     </header>
 <?php else: ?>
     <header class="shop-header">
@@ -61,7 +62,17 @@
             </div>
         </a>
 
-        <nav class="shop-nav">
+        <button
+            class="nav-toggle nav-toggle-shop"
+            type="button"
+            aria-label="Toggle e-shop menu"
+            aria-controls="shop-nav"
+            aria-expanded="false"
+        >
+            <span></span><span></span><span></span>
+        </button>
+
+        <nav id="shop-nav" class="shop-nav">
             <a href="/e-shop" class="<?= $currentPath === 'e-shop' || str_starts_with($currentPath, 'e-shop/product/') ? 'active' : '' ?>">Catalogue</a>
             <a href="/cart" class="<?= $currentPath === 'cart' ? 'active' : '' ?>">Quote Basket<?= isset($cartCount) && $cartCount > 0 ? ' (' . esc((string) $cartCount) . ')' : '' ?></a>
             <a href="/support" class="<?= $currentPath === 'support' ? 'active' : '' ?>">Support</a>
@@ -71,6 +82,7 @@
             <?php endif; ?>
             <a href="/">Main Site</a>
         </nav>
+        <button class="nav-backdrop nav-backdrop-shop" type="button" aria-label="Close e-shop menu" hidden></button>
     </header>
 <?php endif; ?>
 

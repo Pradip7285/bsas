@@ -46,7 +46,6 @@ h1, h2, h3, h4, h5 { line-height: 1.08; font-weight: 900; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 6vw;
   background: rgba(17,17,17,0.97);
-  backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .shop-header {
@@ -59,7 +58,6 @@ h1, h2, h3, h4, h5 { line-height: 1.08; font-weight: 900; }
   gap: 24px;
   padding: 18px 4vw;
   background: rgba(248,250,252,0.96);
-  backdrop-filter: blur(12px);
   border-bottom: 1px solid #d9e0e7;
 }
 .shop-header .logo-name { color: #16202a; }
@@ -3973,6 +3971,11 @@ details.faq-item .faq-ans strong { color: var(--text); }
     box-shadow: 18px 0 42px rgba(0,0,0,.38);
   }
   .site-header #main-nav.open { transform: translateX(0); }
+  .site-header .logo,
+  .shop-header .logo {
+    position: relative;
+    z-index: 425;
+  }
   .nav-toggle {
     display: flex;
     position: relative;
@@ -4082,7 +4085,6 @@ details.faq-item .faq-ans strong { color: var(--text); }
     grid-template-columns: 1fr;
   }
   .shop-toolbar,
-  .shop-header,
   .shop-service-band,
   .shop-store-band,
   .shop-storefront-head,

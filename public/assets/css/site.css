@@ -1,4 +1,40 @@
 /* ============================================================
+   FONTS — Loos Normal (CSTM Fonts)
+   ============================================================ */
+@font-face {
+  font-family: 'Loos';
+  src: url('/assets/fonts/fontys-4.woff') format('woff'),
+       url('/assets/fonts/fontys-4.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Loos';
+  src: url('/assets/fonts/fontys-2.woff') format('woff'),
+       url('/assets/fonts/fontys-2.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Loos';
+  src: url('/assets/fonts/fontys-1.woff') format('woff'),
+       url('/assets/fonts/fontys-1.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Loos';
+  src: url('/assets/fonts/fontys-3.woff') format('woff'),
+       url('/assets/fonts/fontys-3.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
    BSAS — Design System
    Colors: --orange #f59b23 | --black #111 | --white #fff
    ============================================================ */
@@ -21,7 +57,7 @@
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-body { font-family: system-ui, -apple-system, Arial, Helvetica, sans-serif; color: var(--text); line-height: 1.6; background: #fff; }
+body { font-family: 'Loos', system-ui, -apple-system, Arial, Helvetica, sans-serif; color: var(--text); line-height: 1.6; background: #fff; }
 img { max-width: 100%; display: block; }
 a { text-decoration: none; color: inherit; }
 ul { list-style: none; padding: 0; }

@@ -117,19 +117,20 @@ class Website extends Controller
     }
     public function shop()
     {
-        $query    = trim((string) $this->request->getGet('q'));
-        $category = trim((string) $this->request->getGet('category'));
-        $sort     = trim((string) $this->request->getGet('sort'));
-        $page     = max(1, (int) ($this->request->getGet('page') ?? 1));
-        $perPage  = 100;
+        $query       = trim((string) $this->request->getGet('q'));
+        $category    = trim((string) $this->request->getGet('category'));
+        $sort        = trim((string) $this->request->getGet('sort'));
+        $page        = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $inStockOnly = $this->request->getGet('stock') === 'in_stock';
+        $perPage     = 100;
 
         // COUNT query — separate builder so state doesn't bleed into the data query.
-        $totalCount = $this->buildShopQuery($query, $category)->countAllResults();
+        $totalCount = $this->buildShopQuery($query, $category, $inStockOnly)->countAllResults();
         $pageCount  = max(1, (int) ceil($totalCount / $perPage));
         $page       = min($page, $pageCount);
 
         // Data query with user-selected sort and pagination.
-        $dataBuilder = $this->buildShopQuery($query, $category);
+        $dataBuilder = $this->buildShopQuery($query, $category, $inStockOnly);
 
         switch ($sort) {
             case 'name_desc':
@@ -138,6 +139,11 @@ class Website extends Controller
 
             case 'category':
                 $dataBuilder->orderBy('category', 'ASC')->orderBy('name', 'ASC');
+                break;
+
+            case 'in_stock_first':
+                $dataBuilder->orderBy("CASE WHEN stock_status = 'in_stock' THEN 0 WHEN stock_status = 'made_to_order' THEN 1 ELSE 2 END", 'ASC', false);
+                $dataBuilder->orderBy('name', 'ASC');
                 break;
 
             case 'name_asc':
@@ -159,13 +165,14 @@ class Website extends Controller
             'searchQuery'       => $query,
             'activeCategory'    => $category,
             'activeSort'        => $sort,
+            'inStockOnly'       => $inStockOnly,
             'cartCount'         => $this->cartCount(),
             'resultCount'       => $totalCount,
             'page'              => $page,
             'pageCount'         => $pageCount,
             'perPage'           => $perPage,
             'totalProducts'     => array_sum(array_column($categorySummaries, 'count')),
-            'filterSummary'     => $this->shopFilterSummary($query, $category),
+            'filterSummary'     => $this->shopFilterSummary($query, $category, $inStockOnly),
             'active'            => 'shop',
         ]);
     }
@@ -406,6 +413,15 @@ class Website extends Controller
         $quantity = max(1, (int) $this->request->getPost('quantity'));
         $cart[$productId] = ($cart[$productId] ?? 0) + $quantity;
         session()->set('cart', $cart);
+
+        if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+            return $this->response->setJSON([
+                'success'     => true,
+                'cartCount'   => array_sum($cart),
+                'productName' => $product['name'],
+            ]);
+        }
+
         session()->setFlashdata('success', 'Product added to cart.');
 
         return redirect()->back();
@@ -856,9 +872,13 @@ class Website extends Controller
     }
 
     /** Returns a ProductModel builder with search/filter conditions applied. */
-    private function buildShopQuery(string $query, string $category): ProductModel
+    private function buildShopQuery(string $query, string $category, bool $inStockOnly = false): ProductModel
     {
         $builder = $this->products()->active();
+
+        if ($inStockOnly) {
+            $builder->where('stock_status', 'in_stock');
+        }
 
         if ($query !== '') {
             $builder->groupStart()
@@ -931,18 +951,24 @@ class Website extends Controller
         }
     }
 
-    private function shopFilterSummary(string $query, string $category): string
+    private function shopFilterSummary(string $query, string $category, bool $inStockOnly = false): string
     {
+        $stockSuffix = $inStockOnly ? ' (in-stock only)' : '';
+
         if ($query !== '' && $category !== '') {
-            return 'Showing matches for "' . $query . '" in ' . $category . '.';
+            return 'Showing matches for "' . $query . '" in ' . $category . $stockSuffix . '.';
         }
 
         if ($query !== '') {
-            return 'Showing matches for "' . $query . '" across the full catalogue.';
+            return 'Showing matches for "' . $query . '" across the full catalogue' . $stockSuffix . '.';
         }
 
         if ($category !== '') {
-            return 'Showing all products in ' . $category . '.';
+            return 'Showing all products in ' . $category . $stockSuffix . '.';
+        }
+
+        if ($inStockOnly) {
+            return 'Showing in-stock products across the full catalogue.';
         }
 
         return 'Browse the full BSAS catalogue and shortlist products for a consolidated quote request.';

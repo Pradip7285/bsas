@@ -6,9 +6,10 @@ use CodeIgniter\Config\BaseConfig;
 
 class Email extends BaseConfig
 {
-    // Override via .env: email.fromEmail, email.SMTPHost, email.SMTPUser, email.SMTPPass
+    // Override via .env: email.fromEmail, email.leadsEmail, email.SMTPHost, email.SMTPUser, email.SMTPPass
     public string $fromEmail  = 'noreply@bsasindia.com';
     public string $fromName   = 'BSAS Website';
+    public string $leadsEmail = 'info@bsasindia.com';  // Recipient for lead notifications
     public string $recipients = '';
 
     /**

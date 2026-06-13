@@ -488,7 +488,8 @@ class Website extends Controller
         $machine = (string) $this->request->getPost('machine');
         $require = (string) $this->request->getPost('requirement');
 
-        $this->quoteRequests()->insert([
+        $model = $this->quoteRequests();
+        $saved = $model->insert([
             'request_type' => 'quick-quote',
             'name'         => $name,
             'email'        => $email,
@@ -497,6 +498,14 @@ class Website extends Controller
             'message'      => 'Machine: ' . $machine . "\n\n" . $require,
             'source_page'  => 'home',
         ]);
+
+        if (! $saved) {
+            log_message('error', 'QuickQuote DB insert failed: ' . json_encode($model->errors()));
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'errors'  => ['Could not save your request. Please try again or contact us directly.'],
+            ]);
+        }
 
         $this->notifyLead(
             "Quick Quote — {$name}",
@@ -791,9 +800,15 @@ class Website extends Controller
 
     private function notifyLead(string $subject, string $body): void
     {
+        $cfg     = config('Email');
+        $toEmail = $cfg->leadsEmail ?? '';
+        if ($toEmail === '') {
+            return;
+        }
+
         try {
             $mailer = \Config\Services::email();
-            $mailer->setTo($this->data['email']);
+            $mailer->setTo($toEmail);
             $mailer->setSubject('[BSAS Lead] ' . $subject);
             $mailer->setMessage($body);
             $mailer->send();

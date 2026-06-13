@@ -4528,3 +4528,44 @@ details.faq-item .faq-ans strong { color: var(--text); }
   .gallery-home-stats article:last-child { border-bottom: none; }
   .gallery-home-hero { min-height: 44vh; padding: 64px 5vw 48px; }
 }
+
+/* ── Quick Quote form — validation states ── */
+.qq-field input.is-invalid,
+.qq-field textarea.is-invalid {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239,68,68,.15);
+    outline: none;
+}
+.qq-field-hint {
+    display: block;
+    font-size: 12px;
+    margin-top: 4px;
+    color: #888;
+    line-height: 1.4;
+}
+.qq-field-hint--err {
+    color: #ef4444 !important;
+    font-weight: 600;
+}
+.qq-optional {
+    font-size: 12px;
+    font-weight: 400;
+    color: #777;
+    margin-left: 4px;
+}
+.qq-error {
+    font-size: 13px;
+    color: #ef4444;
+    font-weight: 500;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: rgba(239,68,68,.08);
+    border-left: 3px solid #ef4444;
+    border-radius: 4px;
+}
+.qq-success {
+    font-size: 14px;
+    color: #4ade80;
+    font-weight: 600;
+    margin-top: 8px;
+}

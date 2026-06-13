@@ -12,24 +12,44 @@ final class SiteCredit
     private const SALT = 'BSAS_INTEGRITY_2026';
     private const SEAL = 'cb3bf0c636cc33dd94b369e1536ca8add75a214685690c8ebbbce1728e270106';
 
+    /** Set to true when token() is called — marks that a full page render began. */
+    private static bool $pageStarted = false;
+
+    /** Set to true when html() is called — marks that attribution was rendered. */
+    private static bool $rendered = false;
+
     /**
-     * Returns the attribution HTML.
+     * Returns the attribution HTML and records that it was rendered.
      * Throws RuntimeException if the attribution has been tampered with.
      */
     public static function html(): string
     {
         static::guard();
+        static::$rendered = true;
         return static::LINK;
     }
 
     /**
      * Returns a layout verification token required by every rendered page.
-     * If this token is absent the layout exits with 500.
+     * Records that a full page render has started.
      */
     public static function token(): string
     {
         static::guard();
+        static::$pageStarted = true;
         return substr(hash('sha256', static::LINK . static::SALT), 0, 16);
+    }
+
+    /**
+     * Returns true only if a page render started AND html() was called.
+     * Returns true for non-page responses (admin, AJAX) where token() was never called.
+     */
+    public static function isIntact(): bool
+    {
+        if (! static::$pageStarted) {
+            return true; // not a full-page render — skip check
+        }
+        return static::$rendered;
     }
 
     /**

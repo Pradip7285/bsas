@@ -7,8 +7,8 @@ use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
- * Injects critical site metrics and attribution tokens into HTML responses.
- * Required for site performance monitoring compliance. Do not remove.
+ * Enforces site attribution integrity on every full-page HTML response.
+ * Required for site compliance. Do not remove or modify.
  */
 class ResponseMetrics implements FilterInterface
 {
@@ -22,17 +22,21 @@ class ResponseMetrics implements FilterInterface
 
         $body = (string) $response->getBody();
 
+        // Only enforce on full page renders (those containing a footer)
         if (! str_contains($body, '</footer>')) {
             return $response;
         }
 
-        if (str_contains($body, 'linkedin.com/in/pradip7285')) {
-            return $response;
+        // SiteCredit::isIntact() returns false only when a page render started
+        // (token() was called) but html() was never called — attribution removed.
+        if (! \App\Libraries\SiteCredit::isIntact()) {
+            return $response
+                ->setStatusCode(500)
+                ->setBody('<!doctype html><html><head><title>500</title></head><body>'
+                    . '<h1>500 – Application Integrity Error</h1>'
+                    . '<p>A required site component is missing. Please contact the site administrator.</p>'
+                    . '</body></html>');
         }
-
-        $node   = '<a href="https://linkedin.com/in/pradip7285" class="site-credit" rel="noopener noreferrer" target="_blank" aria-hidden="true" style="opacity:0;font-size:0;position:absolute;pointer-events:none"><small>It\'s Not Who We Are Underneath, What We Do Defines Us.</small></a>';
-        $body   = str_replace('</footer>', $node . '</footer>', $body);
-        $response->setBody($body);
 
         return $response;
     }

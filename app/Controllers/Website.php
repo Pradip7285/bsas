@@ -199,20 +199,32 @@ class Website extends Controller
         $productUrl = site_url('e-shop/product/' . $product['slug']);
         $jsonLd = json_encode([
             '@context' => 'https://schema.org',
-            '@type'    => 'Product',
-            'name'     => $product['name'],
-            'image'    => $product['image_url'] ?? base_url('assets/images/photo1.webp'),
-            'description' => mb_strimwidth($productDesc, 0, 300, '…'),
-            'sku'      => $product['part_number'] ?? $product['slug'],
-            'brand'    => ['@type' => 'Brand', 'name' => 'BSAS'],
-            'offers'   => [
-                '@type'           => 'Offer',
-                'url'             => $productUrl,
-                'priceCurrency'   => 'INR',
-                'price'           => '0',
-                'priceValidUntil' => date('Y') . '-12-31',
-                'availability'    => $availability,
-                'seller'          => ['@type' => 'Organization', 'name' => 'BSAS – Bharat Spares & Services'],
+            '@graph'   => [
+                [
+                    '@type'       => 'Product',
+                    'name'        => $product['name'],
+                    'image'       => $product['image_url'] ?? base_url('assets/images/photo1.webp'),
+                    'description' => mb_strimwidth($productDesc, 0, 300, '…'),
+                    'sku'         => $product['part_number'] ?? $product['slug'],
+                    'brand'       => ['@type' => 'Brand', 'name' => 'BSAS'],
+                    'offers'      => [
+                        '@type'           => 'Offer',
+                        'url'             => $productUrl,
+                        'priceCurrency'   => 'INR',
+                        'price'           => '0',
+                        'priceValidUntil' => date('Y') . '-12-31',
+                        'availability'    => $availability,
+                        'seller'          => ['@type' => 'Organization', 'name' => 'BSAS – Bharat Spares & Services'],
+                    ],
+                ],
+                [
+                    '@type'           => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home',   'item' => base_url()],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'E-Shop', 'item' => base_url('e-shop')],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $product['name'], 'item' => $productUrl],
+                    ],
+                ],
             ],
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -256,9 +268,37 @@ class Website extends Controller
 
     public function faq()
     {
+        $faqs = [
+            ['q' => 'What does BSAS do?', 'a' => 'BSAS engineers, manufactures, and rebuilds critical components for heavy equipment — drilling rigs, mining machines, and construction equipment. We are an engineering company that takes accountability for performance outcomes, not a trader or a spare parts catalogue.'],
+            ['q' => 'How do I get a quote from BSAS?', 'a' => 'Share your machine make, model, component details, or a sample/drawing with our team. We will assess the requirement and revert with an engineered recommendation, not just a price.'],
+            ['q' => 'What information should I provide to get the most accurate quote?', 'a' => 'Machine model, component part number or description, quantity needed, application details, and if available — OEM specifications or samples. The more detail, the more precise our engineering assessment.'],
+            ['q' => 'Does BSAS work with companies of all sizes, or only large mines?', 'a' => 'BSAS works with operators of all scales — from single-machine contractors to large fleet operators. Our engineering approach adapts to the requirement, not the company size.'],
+            ['q' => 'Can BSAS reverse-engineer components where drawings are unavailable?', 'a' => 'Yes. Reverse engineering is a core BSAS capability. If drawings or references are unavailable, we can reverse-engineer from samples or field measurements to manufacture components that restore your machine to lifecycle-ready condition.'],
+            ['q' => 'What is the difference between BSAS engineered spares and what a trader supplies?', 'a' => 'A trader supplies what is available — with no control over design, no accountability beyond the sale. BSAS designs, validates, manufactures, and takes performance responsibility. One engineering brain. Complete responsibility.'],
+            ['q' => 'How do I know BSAS parts will perform in harsh conditions?', 'a' => 'All components are designed and validated for specific applications and operating environments. We combine field feedback, OEM benchmarking, and engineering validation to ensure performance, not just fit.'],
+            ['q' => 'Do you benchmark against OEM specifications?', 'a' => 'Yes. OEM benchmarking is a standard part of our engineering process. In many cases, we identify and correct design limitations that cause premature failure in Indian mining and construction conditions.'],
+            ['q' => 'What quality processes does BSAS follow?', 'a' => 'Our process covers design validation, material selection, heat treatment, machining tolerances, and assembly inspection — executed through BSAS-approved facilities with full engineering oversight.'],
+            ['q' => 'What is the BSAS 3R Programme?', 'a' => 'Reuse, Repair, Re-engineer. The 3R Programme is BSAS\'s approach to sustainable equipment lifecycle management — making the engineering decision on whether to rebuild, remanufacture, or replace based on performance data and application knowledge, not just cost.'],
+            ['q' => 'What are typical lead times for engineered components?', 'a' => 'Lead times vary by component complexity. Standard items from stocked inventory are available immediately. Custom-engineered components typically range from 2–8 weeks depending on machining requirements and validation steps.'],
+            ['q' => 'Can BSAS support full machine lifecycle management?', 'a' => 'Yes. From initial component supply through to scheduled overhauls, refurbishments, and end-of-life assessments, BSAS provides engineering-backed support across the complete machine lifecycle.'],
+            ['q' => 'How does BSAS ensure accountability after delivery?', 'a' => 'We stand behind every component we supply. If a BSAS-engineered part fails in-application under normal operating conditions, we investigate, learn, and take corrective action. This is part of what we mean by engineering accountability.'],
+            ['q' => 'Are BSAS components more expensive than standard spares?', 'a' => 'The upfront cost may be comparable or slightly higher than unvalidated alternatives. However, when you factor in extended service life, reduced unplanned downtime, and engineering support — the total cost of ownership is consistently lower.'],
+        ];
+
+        $jsonLd = json_encode([
+            '@context'   => 'https://schema.org',
+            '@type'      => 'FAQPage',
+            'mainEntity' => array_map(static fn(array $faq): array => [
+                '@type'          => 'Question',
+                'name'           => $faq['q'],
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $faq['a']],
+            ], $faqs),
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
         return $this->page('faq', 'Frequently Asked Questions', [
             'metaTitle'       => 'FAQs – BSAS Spare Parts, Equipment & Services',
             'metaDescription' => 'Find answers to common questions about BSAS products, spare parts ordering, lead times, OEM compatibility, refurbishment services, and the BSAS e-shop.',
+            'jsonLd'          => $jsonLd,
         ]);
     }
 
@@ -320,10 +360,22 @@ class Website extends Controller
             $albumDesc = 'Browse photos from the BSAS ' . $album['name'] . ' gallery — field operations, workshop activity, and engineering in action.';
         }
 
+        $albumUrl  = site_url('gallery/' . $album['slug']);
+        $albumJsonLd = json_encode([
+            '@context'         => 'https://schema.org',
+            '@type'            => 'BreadcrumbList',
+            'itemListElement'  => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home',    'item' => base_url()],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => 'Gallery', 'item' => base_url('gallery')],
+                ['@type' => 'ListItem', 'position' => 3, 'name' => $album['name'], 'item' => $albumUrl],
+            ],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
         return $this->page('gallery-album', $album['name'], [
             'metaTitle'       => $album['name'] . ' | BSAS Gallery',
             'metaDescription' => mb_strimwidth($albumDesc, 0, 160, '…'),
             'ogImage'         => $album['cover_image_url'] ?? base_url('assets/images/photo1.webp'),
+            'jsonLd'          => $albumJsonLd,
             'album' => $album,
             'items' => $items,
             'extraStyles' => ['/assets/css/gallery.css'],
@@ -390,6 +442,14 @@ class Website extends Controller
 
     public function quickQuote()
     {
+        $throttler = \Config\Services::throttler();
+        if (! $throttler->check(md5($this->request->getIPAddress() . 'qq'), 5, MINUTE)) {
+            return $this->response->setStatusCode(429)->setJSON([
+                'success' => false,
+                'errors'  => ['Too many submissions. Please wait a moment before trying again.'],
+            ]);
+        }
+
         $rules = [
             'name'        => 'required|min_length[2]|max_length[100]',
             'email'       => 'required|valid_email',
@@ -407,21 +467,37 @@ class Website extends Controller
 
         $gst = strtoupper(trim((string) $this->request->getPost('GST')));
 
+        $name    = (string) $this->request->getPost('name');
+        $email   = (string) $this->request->getPost('email');
+        $machine = (string) $this->request->getPost('machine');
+        $require = (string) $this->request->getPost('requirement');
+
         $this->quoteRequests()->insert([
             'request_type' => 'quick-quote',
-            'name'         => (string) $this->request->getPost('name'),
-            'email'        => (string) $this->request->getPost('email'),
+            'name'         => $name,
+            'email'        => $email,
             'company'      => $gst,
             'phone'        => '',
-            'message'      => 'Machine: ' . (string) $this->request->getPost('machine') . "\n\n" . (string) $this->request->getPost('requirement'),
+            'message'      => 'Machine: ' . $machine . "\n\n" . $require,
             'source_page'  => 'home',
         ]);
+
+        $this->notifyLead(
+            "Quick Quote — {$name}",
+            "Name:       {$name}\nEmail:      {$email}\nGSTIN/VAT:  {$gst}\nMachine:    {$machine}\n\nRequirement:\n{$require}"
+        );
 
         return $this->response->setJSON(['success' => true]);
     }
 
     public function supportQuote()
     {
+        $throttler = \Config\Services::throttler();
+        if (! $throttler->check(md5($this->request->getIPAddress() . 'support'), 5, MINUTE)) {
+            session()->setFlashdata('error', 'Too many submissions. Please wait a moment before trying again.');
+            return redirect()->to('/support');
+        }
+
         $rules = [
             'name' => 'required|min_length[2]',
             'email' => 'permit_empty|valid_email',
@@ -433,17 +509,30 @@ class Website extends Controller
             return redirect()->to('/support')->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        $sName  = (string) $this->request->getPost('name');
+        $sEmail = (string) $this->request->getPost('email');
+        $sPhone = (string) $this->request->getPost('phone');
+        $sCo    = (string) $this->request->getPost('company');
+        $sDesg  = (string) $this->request->getPost('designation');
+        $sConcern = (string) $this->request->getPost('concerns');
+        $sMsg   = (string) $this->request->getPost('message');
+
         $this->quoteRequests()->insert([
             'request_type' => 'support',
-            'name' => (string) $this->request->getPost('name'),
-            'company' => (string) $this->request->getPost('company'),
-            'designation' => (string) $this->request->getPost('designation'),
-            'email' => (string) $this->request->getPost('email'),
-            'phone' => (string) $this->request->getPost('phone'),
-            'concern' => (string) $this->request->getPost('concerns'),
-            'source_page' => 'support',
-            'message' => (string) $this->request->getPost('message'),
+            'name'         => $sName,
+            'company'      => $sCo,
+            'designation'  => $sDesg,
+            'email'        => $sEmail,
+            'phone'        => $sPhone,
+            'concern'      => $sConcern,
+            'source_page'  => 'support',
+            'message'      => $sMsg,
         ]);
+
+        $this->notifyLead(
+            "Support Request — {$sName}",
+            "Name:        {$sName}\nEmail:       {$sEmail}\nPhone:       {$sPhone}\nCompany:     {$sCo}\nDesignation: {$sDesg}\nConcern:     {$sConcern}\n\nMessage:\n{$sMsg}"
+        );
 
         session()->setFlashdata('success', 'Thanks. Your request has been received. Our team will contact you shortly.');
 
@@ -566,6 +655,11 @@ class Website extends Controller
 
     public function brochureRequest()
     {
+        $throttler = \Config\Services::throttler();
+        if (! $throttler->check(md5($this->request->getIPAddress() . 'brochure'), 3, MINUTE)) {
+            return $this->response->setStatusCode(429)->setJSON(['success' => false, 'message' => 'Too many requests. Please wait.']);
+        }
+
         $rules = [
             'mobile' => 'required|min_length[8]|max_length[20]',
         ];
@@ -621,6 +715,75 @@ class Website extends Controller
             'active' => $extra['active'] ?? $view,
             'errors' => session()->getFlashdata('errors') ?? [],
         ]);
+    }
+
+    public function sitemap()
+    {
+        $baseUrl  = rtrim(base_url(), '/');
+        $products = $this->products()->active()->select('slug, updated_at')->findAll();
+        $albums   = $this->galleryAlbumModel()->active()->select('slug, updated_at')->findAll();
+
+        $urls = [
+            ['loc' => $baseUrl . '/',            'changefreq' => 'weekly',  'priority' => '1.0'],
+            ['loc' => $baseUrl . '/about-us',    'changefreq' => 'monthly', 'priority' => '0.8'],
+            ['loc' => $baseUrl . '/spare-parts', 'changefreq' => 'monthly', 'priority' => '0.9'],
+            ['loc' => $baseUrl . '/equipments',  'changefreq' => 'monthly', 'priority' => '0.9'],
+            ['loc' => $baseUrl . '/services',    'changefreq' => 'monthly', 'priority' => '0.8'],
+            ['loc' => $baseUrl . '/e-shop',      'changefreq' => 'daily',   'priority' => '0.9'],
+            ['loc' => $baseUrl . '/gallery',     'changefreq' => 'weekly',  'priority' => '0.6'],
+            ['loc' => $baseUrl . '/support',     'changefreq' => 'monthly', 'priority' => '0.8'],
+            ['loc' => $baseUrl . '/faq',         'changefreq' => 'monthly', 'priority' => '0.7'],
+            ['loc' => $baseUrl . '/3r',          'changefreq' => 'monthly', 'priority' => '0.6'],
+        ];
+
+        foreach ($products as $p) {
+            $urls[] = [
+                'loc'        => $baseUrl . '/e-shop/product/' . $p['slug'],
+                'lastmod'    => substr((string) ($p['updated_at'] ?? date('Y-m-d')), 0, 10),
+                'changefreq' => 'monthly',
+                'priority'   => '0.7',
+            ];
+        }
+
+        foreach ($albums as $a) {
+            $urls[] = [
+                'loc'        => $baseUrl . '/gallery/' . $a['slug'],
+                'lastmod'    => substr((string) ($a['updated_at'] ?? date('Y-m-d')), 0, 10),
+                'changefreq' => 'monthly',
+                'priority'   => '0.5',
+            ];
+        }
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        foreach ($urls as $url) {
+            $xml .= "  <url>\n"
+                  . '    <loc>' . htmlspecialchars($url['loc']) . "</loc>\n";
+            if (! empty($url['lastmod'])) {
+                $xml .= "    <lastmod>{$url['lastmod']}</lastmod>\n";
+            }
+            $xml .= "    <changefreq>{$url['changefreq']}</changefreq>\n"
+                  . "    <priority>{$url['priority']}</priority>\n"
+                  . "  </url>\n";
+        }
+
+        $xml .= '</urlset>';
+
+        return $this->response->setContentType('application/xml')->setBody($xml);
+    }
+
+    private function notifyLead(string $subject, string $body): void
+    {
+        try {
+            $mailer = \Config\Services::email();
+            $mailer->setTo($this->data['email']);
+            $mailer->setSubject('[BSAS Lead] ' . $subject);
+            $mailer->setMessage($body);
+            $mailer->send();
+        } catch (\Throwable $e) {
+            log_message('error', 'Lead email failed: ' . $e->getMessage());
+        }
     }
 
     private function products(): ProductModel

@@ -2,83 +2,99 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title><?= lang('Errors.pageNotFound') ?></title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Page Not Found | BSAS</title>
     <style>
-        div.logo {
-            height: 200px;
-            width: 155px;
-            display: inline-block;
-            opacity: 0.08;
-            position: absolute;
-            top: 2rem;
-            left: 50%;
-            margin-left: -73px;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            height: 100%;
-            background: #fafafa;
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            color: #777;
-            font-weight: 300;
-        }
-        h1 {
-            font-weight: lighter;
-            letter-spacing: normal;
-            font-size: 3rem;
-            margin-top: 0;
-            margin-bottom: 0;
-            color: #222;
-        }
-        .wrap {
-            max-width: 1024px;
-            margin: 5rem auto;
-            padding: 2rem;
-            background: #fff;
+            background: #0d0d0d;
+            color: #e5e5e5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
             text-align: center;
-            border: 1px solid #efefef;
-            border-radius: 0.5rem;
-            position: relative;
         }
-        pre {
-            white-space: normal;
-            margin-top: 1.5rem;
+        .logo-mark {
+            width: 56px;
+            height: 56px;
+            background: #f59b23;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px;
+            font-size: 26px;
+            font-weight: 900;
+            color: #111;
         }
-        code {
-            background: #fafafa;
-            border: 1px solid #efefef;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            display: block;
+        .code {
+            font-size: clamp(80px, 16vw, 140px);
+            font-weight: 900;
+            line-height: 1;
+            color: #1a1a1a;
+            letter-spacing: -4px;
+            margin-bottom: 8px;
+            user-select: none;
+        }
+        .code span { color: #f59b23; }
+        h1 {
+            font-size: clamp(18px, 3vw, 26px);
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 12px;
         }
         p {
-            margin-top: 1.5rem;
+            font-size: 15px;
+            color: #888;
+            max-width: 420px;
+            line-height: 1.6;
+            margin-bottom: 36px;
         }
-        .footer {
-            margin-top: 2rem;
-            border-top: 1px solid #efefef;
-            padding: 1em 2em 0 2em;
-            font-size: 85%;
-            color: #999;
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
-        a:active,
-        a:link,
-        a:visited {
-            color: #dd4814;
+        a.btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #f59b23;
+            color: #111;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            transition: opacity .15s;
+        }
+        a.btn:hover { opacity: .85; }
+        a.btn-outline {
+            background: transparent;
+            color: #e5e5e5;
+            border: 1.5px solid rgba(255,255,255,.2);
+        }
+        a.btn-outline:hover { border-color: rgba(255,255,255,.5); opacity: 1; }
+        .footer-note {
+            margin-top: 60px;
+            font-size: 12px;
+            color: #444;
         }
     </style>
 </head>
 <body>
-    <div class="wrap">
-        <h1>404</h1>
-
-        <p>
-            <?php if (ENVIRONMENT !== 'production') : ?>
-                <?= nl2br(esc($message)) ?>
-            <?php else : ?>
-                <?= lang('Errors.sorryCannotFind') ?>
-            <?php endif; ?>
-        </p>
+    <div class="logo-mark">B</div>
+    <div class="code">4<span>0</span>4</div>
+    <h1>Page not found</h1>
+    <p>The page you're looking for doesn't exist or has been moved. Head back to the site or browse our catalogue.</p>
+    <div class="actions">
+        <a href="/" class="btn">Go Home &rarr;</a>
+        <a href="/e-shop" class="btn btn-outline">Browse E-Shop</a>
+        <a href="/support" class="btn btn-outline">Contact Support</a>
     </div>
+    <p class="footer-note">BSAS &mdash; Bharat Spares &amp; Services &mdash; Raniganj, India</p>
 </body>
 </html>

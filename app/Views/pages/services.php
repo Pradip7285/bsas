@@ -10,7 +10,7 @@
 <!-- SERVICES GRID -->
 <section class="section">
     <div class="section-label" data-aos="fade-up">What We Offer</div>
-    <div class="section-title mb-40" data-aos="fade-up">Our <span class="accent">Service Capabilities</span></div>
+    <h2 class="section-title mb-40" data-aos="fade-up">Our <span class="accent">Service Capabilities</span></h2>
     <div class="services-grid">
         <div class="service-card" data-aos="fade-up">
             <div class="service-icon">🔧</div>
@@ -35,7 +35,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;">
         <div data-aos="fade-right">
             <div class="section-label">Sustainability</div>
-            <div class="section-title">The BSAS <span class="accent">3R Programme</span></div>
+            <h2 class="section-title">The BSAS <span class="accent">3R Programme</span></h2>
             <p style="color:var(--text-muted);font-size:15px;line-height:1.8;margin:16px 0 24px;">Sustainability in heavy industry is not a report. The 3R Programme — Reuse, Repair, Re-engineer — is how BSAS has always operated. It is simply the name we now give it.</p>
             <a href="/3r" class="btn">Learn About 3R ↗</a>
         </div>

@@ -6,8 +6,9 @@ use CodeIgniter\Config\BaseConfig;
 
 class Email extends BaseConfig
 {
-    public string $fromEmail  = '';
-    public string $fromName   = '';
+    // Override via .env: email.fromEmail, email.SMTPHost, email.SMTPUser, email.SMTPPass
+    public string $fromEmail  = 'noreply@bsasindia.com';
+    public string $fromName   = 'BSAS Website';
     public string $recipients = '';
 
     /**
@@ -18,7 +19,7 @@ class Email extends BaseConfig
     /**
      * The mail sending protocol: mail, sendmail, smtp
      */
-    public string $protocol = 'mail';
+    public string $protocol = 'smtp';
 
     /**
      * The server path to Sendmail.

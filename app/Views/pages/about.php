@@ -47,7 +47,7 @@
 <!-- CAPABILITIES -->
 <section class="section section-grey">
     <div class="section-label" data-aos="fade-up">What We Cover</div>
-    <div class="section-title mb-8" data-aos="fade-up">Our Capabilities <span class="accent">Span</span></div>
+    <h2 class="section-title mb-8" data-aos="fade-up">Our Capabilities <span class="accent">Span</span></h2>
     <p class="section-sub" data-aos="fade-up">From Component to Complete Lifecycle</p>
     <div class="caps-grid">
         <div class="cap-card" data-aos="fade-up">
@@ -102,7 +102,7 @@
 <!-- MISSION & VISION -->
 <section class="section section-dark">
     <div class="section-label" data-aos="fade-up">Our Purpose</div>
-    <div class="section-title mb-40" data-aos="fade-up">Mission &amp; <span class="accent">Vision</span></div>
+    <h2 class="section-title mb-40" data-aos="fade-up">Mission &amp; <span class="accent">Vision</span></h2>
     <div class="mv-grid">
         <div class="mv-card" data-aos="fade-up">
             <div class="mv-icon">🎯</div>
@@ -140,7 +140,7 @@
 <!-- TEAM -->
 <section class="section section-grey">
     <div class="section-label">The People</div>
-    <div class="section-title text-center mb-40" style="color:var(--orange);">Team</div>
+    <h2 class="section-title text-center mb-40" style="color:var(--orange);">Team</h2>
     <div class="team-grid">
         <div class="team-card" data-aos="fade-up">
             <div class="team-photo"></div>

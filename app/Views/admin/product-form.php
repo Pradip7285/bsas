@@ -131,6 +131,19 @@ if ($specsOld !== '') {
             </p>
         </div>
 
+        <!-- ── Part Number ── -->
+        <div class="form-group">
+            <label for="pf-partno">
+                Part Number
+                <span class="admin-badge admin-badge--muted" style="margin-left:6px">optional</span>
+            </label>
+            <input id="pf-partno" type="text" name="part_number"
+                   value="<?= esc(old('part_number', $product['part_number'] ?? '')) ?>"
+                   placeholder="e.g. HP-3080-OEM, AT123456"
+                   autocomplete="off">
+            <p class="adm-field-hint">OEM or manufacturer part number. Shown on the product page and included in quote submissions.</p>
+        </div>
+
         <!-- ── Product Image ── -->
         <div class="form-group">
             <label>Product Image</label>

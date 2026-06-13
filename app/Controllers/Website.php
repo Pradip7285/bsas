@@ -212,7 +212,8 @@ class Website extends Controller
                     'name'        => $product['name'],
                     'image'       => $product['image_url'] ?? base_url('assets/images/photo1.webp'),
                     'description' => mb_strimwidth($productDesc, 0, 300, '…'),
-                    'sku'         => $product['part_number'] ?? $product['slug'],
+                    'sku'         => $product['sku'] ?? $product['slug'],
+                    'mpn'         => $product['part_number'] ?? null,
                     'brand'       => ['@type' => 'Brand', 'name' => 'BSAS'],
                     'offers'      => [
                         '@type'           => 'Offer',

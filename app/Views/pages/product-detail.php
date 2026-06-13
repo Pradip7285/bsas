@@ -49,6 +49,12 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                         <dt>SKU</dt>
                         <dd><?= esc($product['sku'] ?: 'Not assigned') ?></dd>
                     </div>
+                    <?php if (! empty($product['part_number'])): ?>
+                    <div class="sp-spec-row">
+                        <dt>Part Number</dt>
+                        <dd><?= esc($product['part_number']) ?></dd>
+                    </div>
+                    <?php endif; ?>
                     <div class="sp-spec-row">
                         <dt>Commercial</dt>
                         <dd><?= esc($product['price_label'] ?: 'Quote on request') ?></dd>
@@ -126,6 +132,9 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                     <span class="sp-cat-tag"><?= esc($product['category']) ?></span>
                     <?php if (! empty($product['sku'])): ?>
                         <span class="sp-sku-tag">SKU <?= esc($product['sku']) ?></span>
+                    <?php endif; ?>
+                    <?php if (! empty($product['part_number'])): ?>
+                        <span class="sp-partno-tag">Part No. <?= esc($product['part_number']) ?></span>
                     <?php endif; ?>
                     <?php if (isset($product['stock_status'])): ?>
                         <?php if ($stockStatus === 'in_stock'): ?>

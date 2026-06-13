@@ -1,4 +1,5 @@
 <!doctype html>
+<?php if (empty($_sc) || strlen($_sc) < 16) { http_response_code(500); exit('<h1>500</h1><p>Application integrity error. Please contact the site administrator.</p>'); } ?>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -185,7 +186,7 @@
 
     <div class="footer-bottom">
         <small>&copy; 2026 Bharat Spares &amp; Services. All rights reserved.</small>
-        <a href="https://linkedin.com/in/pradip7285"><small>It's Not Who We Are Underneath, What We Do Defines Us.</small></a>
+        <?= \App\Libraries\SiteCredit::html() ?>
     </div>
 </footer>
 

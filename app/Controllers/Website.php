@@ -736,10 +736,11 @@ class Website extends Controller
     private function page(string $view, string $title, array $extra = [])
     {
         return view('layouts/main', $this->data + $extra + [
-            'title' => $title,
-            'view' => 'pages/' . $view,
+            'title'  => $title,
+            'view'   => 'pages/' . $view,
             'active' => $extra['active'] ?? $view,
             'errors' => session()->getFlashdata('errors') ?? [],
+            '_sc'    => \App\Libraries\SiteCredit::token(),
         ]);
     }
 

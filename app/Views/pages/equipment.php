@@ -2,7 +2,7 @@
 <section class="hero">
     <div class="hero-bg bg-equip"></div>
     <div class="hero-content">
-        <h1>Advance <span class="accent">Drilling Solutions</span></h1>
+        <h1>Advanced <span class="accent">Drilling Solutions</span></h1>
     </div>
 </section>
 

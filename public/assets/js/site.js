@@ -216,17 +216,108 @@ document.querySelectorAll('a[href="#"]').forEach(function (link) {
     nums.forEach(function (el) { observer.observe(el); });
 })();
 
-// Quick-quote form placeholder submit
+// Quick-quote form — AJAX submit with regex validation
 (function () {
     var form = document.getElementById('qq-form');
     if (!form) return;
 
+    var RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    var RE_GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i;
+
+    function setFieldError(input, msg) {
+        input.classList.toggle('is-invalid', !!msg);
+        var hint = input.parentElement.querySelector('.qq-field-hint');
+        if (msg) {
+            if (!hint) {
+                hint = document.createElement('span');
+                hint.className = 'qq-field-hint qq-field-hint--err';
+                input.parentElement.appendChild(hint);
+            }
+            hint.textContent = msg;
+            hint.classList.add('qq-field-hint--err');
+        } else if (hint && hint.classList.contains('qq-field-hint--err')) {
+            hint.textContent = hint.dataset.original || '';
+            hint.classList.remove('qq-field-hint--err');
+        }
+    }
+
+    function validateForm() {
+        var ok = true;
+        var name = form.querySelector('#qq-name');
+        var email = form.querySelector('#qq-email');
+        var gst = form.querySelector('#qq-GST');
+        var req = form.querySelector('#qq-requirement');
+
+        if (!name.value.trim()) {
+            setFieldError(name, 'Name is required.'); ok = false;
+        } else { setFieldError(name, ''); }
+
+        if (!email.value.trim()) {
+            setFieldError(email, 'Email is required.'); ok = false;
+        } else if (!RE_EMAIL.test(email.value.trim())) {
+            setFieldError(email, 'Enter a valid email address.'); ok = false;
+        } else { setFieldError(email, ''); }
+
+        var gstVal = gst.value.trim();
+        if (gstVal !== '') {
+            if (gstVal.length === 15 && !RE_GSTIN.test(gstVal)) {
+                setFieldError(gst, 'Invalid GSTIN format. Expected: 22AAAAA0000A1Z5'); ok = false;
+            } else if (gstVal.length < 4) {
+                setFieldError(gst, 'Too short — enter full GSTIN or VAT number.'); ok = false;
+            } else { setFieldError(gst, ''); }
+        } else { setFieldError(gst, ''); }
+
+        if (!req.value.trim() || req.value.trim().length < 5) {
+            setFieldError(req, 'Please describe your requirement.'); ok = false;
+        } else { setFieldError(req, ''); }
+
+        return ok;
+    }
+
+    // Store original hint text
+    var gstHint = form.querySelector('#qq-GST ~ .qq-field-hint');
+    if (gstHint) gstHint.dataset.original = gstHint.textContent;
+
+    // Real-time validation on blur
+    ['#qq-email', '#qq-GST'].forEach(function (sel) {
+        var el = form.querySelector(sel);
+        if (el) el.addEventListener('blur', function () { validateForm(); });
+    });
+
     form.addEventListener('submit', function (e) {
         e.preventDefault();
+        if (!validateForm()) return;
+
         var btn = form.querySelector('.qq-submit');
-        var success = document.getElementById('qq-success');
-        if (btn) { btn.textContent = 'Sent'; btn.disabled = true; }
-        if (success) success.hidden = false;
+        var successEl = document.getElementById('qq-success');
+        var errorEl = document.getElementById('qq-error');
+
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+        if (errorEl) errorEl.hidden = true;
+
+        var data = new FormData(form);
+
+        fetch('/quick-quote', { method: 'POST', body: data })
+            .then(function (res) { return res.json(); })
+            .then(function (json) {
+                if (json.success) {
+                    form.reset();
+                    form.querySelectorAll('.is-invalid').forEach(function (el) { el.classList.remove('is-invalid'); });
+                    btn.hidden = true;
+                    if (successEl) successEl.hidden = false;
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Send Enquiry →';
+                    var msgs = json.errors ? Object.values(json.errors).join(' ') : 'Submission failed. Please try again.';
+                    if (errorEl) { errorEl.textContent = msgs; errorEl.hidden = false; }
+                }
+            })
+            .catch(function () {
+                btn.disabled = false;
+                btn.textContent = 'Send Enquiry →';
+                if (errorEl) { errorEl.textContent = 'Network error. Please try again.'; errorEl.hidden = false; }
+            });
     });
 })();
 

@@ -59,7 +59,7 @@
     <h2 class="supply-title" data-aos="fade-up">Engineered and manufactured through a <span style="color:var(--orange);">globally qualified supply network.</span></h2>
     <div class="supply-rows">
         <div class="supply-row" data-aos="fade-up">
-            <div class="supply-row-img bg-parts"><img src="../assets/images/Store2.webp" alt="Parts"></div>
+            <div class="supply-row-img bg-parts"><img src="../assets/images/Store2.webp" alt="Rock drill spare parts stocked at BSAS warehouse, Raniganj"></div>
             <div class="supply-row-text">
                 <b>1.5M</b>
                 <strong>Parts Ready Stocked</strong>
@@ -72,7 +72,7 @@
                 <strong>Parts Ready Stocked</strong>
                 <p>A vast inventory at your fingertips — ensuring instant availability, reduced downtime, and uninterrupted operations when it matters most.</p>
             </div>
-            <div class="supply-row-img bg-workshop"><img src="../assets/images/Store2.webp" alt="Parts"></div>
+            <div class="supply-row-img bg-workshop"><img src="../assets/images/Store2.webp" alt="BSAS assembly and refurbishment workshop for mining equipment"></div>
         </div>
     </div>
 </section>

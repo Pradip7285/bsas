@@ -24,6 +24,7 @@ $routes->post('support/quote', 'Website::supportQuote');
 $routes->post('product-quote/(:segment)', 'Website::productQuote/$1');
 $routes->post('cart/request-quote', 'Website::cartQuote');
 $routes->post('brochure/request', 'Website::brochureRequest');
+$routes->post('quick-quote', 'Website::quickQuote');
 $routes->get('brochure/download', 'Website::downloadBrochure');
 
 $routes->get('admin/login', 'AdminController::login');

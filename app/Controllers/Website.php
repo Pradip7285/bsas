@@ -16,16 +16,105 @@ class Website extends Controller
     private array $data = [
         'company' => 'Bharat Spares & Services',
         'brand' => 'BSAS',
-        'phone' => '+91 0841 4057522',
-        'email' => 'sales@exportsindiass.com',
+        'phone' => '03414057522',
+        'email' => 'salessupport@bsasindia.com',
         'address' => '21, C.I.M. Lane, Raniganj, WB 713347'
     ];
 
-    public function home() { return $this->page('home', 'Engineered for Heavy Flow'); }
-    public function about() { return $this->page('about', 'We Manufacture, We Rebuild, We Engineer'); }
-    public function spareParts() { return $this->page('spare-parts', 'One Engineering Brain, Every Critical Spare'); }
-    public function equipment() { return $this->page('equipment', 'Advance Drilling Solutions'); }
-    public function services() { return $this->page('services', 'Reliable Field Services'); }
+    public function home()
+    {
+        $baseUrl = base_url();
+        $jsonLd  = json_encode([
+            '@context' => 'https://schema.org',
+            '@graph'   => [
+                [
+                    '@type'         => 'Organization',
+                    '@id'           => $baseUrl . '#organization',
+                    'name'          => 'Bharat Spares & Services',
+                    'alternateName' => 'BSAS',
+                    'url'           => $baseUrl,
+                    'logo'          => $baseUrl . 'assets/images/white.svg',
+                    'description'   => 'Manufacturers of drill rigs and suppliers of rock drill spares, hydraulic assemblies, and refurbishment services for mining and construction machinery.',
+                    'address'       => [
+                        '@type'           => 'PostalAddress',
+                        'streetAddress'   => '21, C.I.M. Lane',
+                        'addressLocality' => 'Raniganj',
+                        'addressRegion'   => 'West Bengal',
+                        'postalCode'      => '713347',
+                        'addressCountry'  => 'IN',
+                    ],
+                    'contactPoint' => [
+                        '@type'       => 'ContactPoint',
+                        'telephone'   => '+91-08414057522',
+                        'contactType' => 'sales',
+                        'email'       => 'sales@exportsindiass.com',
+                        'areaServed'  => 'IN',
+                    ],
+                ],
+                [
+                    '@type'           => 'WebSite',
+                    '@id'             => $baseUrl . '#website',
+                    'name'            => 'BSAS – Bharat Spares & Services',
+                    'url'             => $baseUrl,
+                    'publisher'       => ['@id' => $baseUrl . '#organization'],
+                    'inLanguage'      => 'en-IN',
+                    'potentialAction' => [
+                        '@type'       => 'SearchAction',
+                        'target'      => $baseUrl . 'e-shop?q={search_term_string}',
+                        'query-input' => 'required name=search_term_string',
+                    ],
+                ],
+                [
+                    '@type'       => 'WebPage',
+                    '@id'         => $baseUrl . '#webpage',
+                    'url'         => $baseUrl,
+                    'name'        => 'Bharat Spares & Services (BSAS) | Mining & Construction Equipment',
+                    'description' => 'BSAS engineers, manufactures, and rebuilds critical systems for heavy equipment. Rock drill spares, hydraulic assemblies, and India\'s first man-portable drill rig.',
+                    'isPartOf'    => ['@id' => $baseUrl . '#website'],
+                    'about'       => ['@id' => $baseUrl . '#organization'],
+                    'inLanguage'  => 'en-IN',
+                ],
+            ],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return $this->page('home', 'Engineered for Heavy Flow', [
+            'metaTitle'       => 'Bharat Spares & Services (BSAS) | Mining & Construction Equipment',
+            'metaDescription' => 'Rock drill spares, hydraulic assemblies & India\'s first man-portable rig — BSAS, Raniganj. Serving mining and construction fleets across India.',
+            'ogImage'         => base_url('assets/images/photo1.webp'),
+            'jsonLd'          => $jsonLd,
+        ]);
+    }
+    public function about()
+    {
+        return $this->page('about', 'We Manufacture, We Rebuild, We Engineer', [
+            'metaTitle'       => 'About BSAS – Bharat Spares & Services | Raniganj, India',
+            'metaDescription' => 'Drill rig manufacturers and spare parts suppliers with 50+ years of experience. 26+ acre workshop in Raniganj, West Bengal. Trusted by mining and construction.',
+        ]);
+    }
+
+    public function spareParts()
+    {
+        return $this->page('spare-parts', 'One Engineering Brain, Every Critical Spare', [
+            'metaTitle'       => 'Rock Drill Spare Parts | BSAS – Bharat Spares & Services',
+            'metaDescription' => 'Rock drill spares, drifter assemblies, hydraulic pumps, and gearbox components for mining machinery. OEM-grade, engineering-validated. BSAS India.',
+        ]);
+    }
+
+    public function equipment()
+    {
+        return $this->page('equipment', 'Advance Drilling Solutions', [
+            'metaTitle'       => 'Drill Rigs & Equipment | BSAS – India\'s First Man-Portable Rig',
+            'metaDescription' => 'BSAS manufactures drill rigs including India\'s first man-portable rig for remote exploration. Engineered for mining, construction, and geotechnical applications.',
+        ]);
+    }
+
+    public function services()
+    {
+        return $this->page('services', 'Reliable Field Services', [
+            'metaTitle'       => 'Equipment Services & Refurbishment | BSAS India',
+            'metaDescription' => 'Equipment overhaul, hydraulic refurbishment, component rebuild, and field support for mining fleets. BSAS — 26+ acre workshop, Raniganj, India.',
+        ]);
+    }
     public function shop()
     {
         $query    = trim((string) $this->request->getGet('q'));
@@ -62,6 +151,8 @@ class Website extends Controller
         $categorySummaries = $this->categorySummaries();
 
         return $this->page('shop', 'E-Shop', [
+            'metaTitle'         => 'BSAS E-Shop | Rock Drill Spares, Hydraulics & Mining Parts',
+            'metaDescription'   => 'Browse and request quotes for rock drill spares, hydraulic assemblies, drifters, and gearboxes. Fast sourcing for mining and construction fleets. BSAS India.',
             'products'          => $products,
             'categories'        => array_column($categorySummaries, 'name'),
             'categorySummaries' => $categorySummaries,
@@ -93,11 +184,48 @@ class Website extends Controller
             ->where('id !=', $product['id'])
             ->findAll(3);
 
+        $productDesc = trim((string) ($product['short_description'] ?? ''));
+        if ($productDesc === '') {
+            $productDesc = 'View specifications, compatibility, and request a quote for ' . $product['name'] . '. Sourced and validated by BSAS engineering for mining and construction equipment.';
+        }
+
+        $stockStatus = $product['stock_status'] ?? 'in_stock';
+        $availability = match ($stockStatus) {
+            'in_stock'      => 'https://schema.org/InStock',
+            'made_to_order' => 'https://schema.org/PreOrder',
+            default         => 'https://schema.org/OutOfStock',
+        };
+
+        $productUrl = site_url('e-shop/product/' . $product['slug']);
+        $jsonLd = json_encode([
+            '@context' => 'https://schema.org',
+            '@type'    => 'Product',
+            'name'     => $product['name'],
+            'image'    => $product['image_url'] ?? base_url('assets/images/photo1.webp'),
+            'description' => mb_strimwidth($productDesc, 0, 300, '…'),
+            'sku'      => $product['part_number'] ?? $product['slug'],
+            'brand'    => ['@type' => 'Brand', 'name' => 'BSAS'],
+            'offers'   => [
+                '@type'           => 'Offer',
+                'url'             => $productUrl,
+                'priceCurrency'   => 'INR',
+                'price'           => '0',
+                'priceValidUntil' => date('Y') . '-12-31',
+                'availability'    => $availability,
+                'seller'          => ['@type' => 'Organization', 'name' => 'BSAS – Bharat Spares & Services'],
+            ],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
         return $this->page('product-detail', $product['name'], [
-            'product' => $product,
+            'metaTitle'       => $product['name'] . ' | BSAS E-Shop',
+            'metaDescription' => mb_strimwidth($productDesc, 0, 160, '…'),
+            'ogType'          => 'product',
+            'ogImage'         => $product['image_url'] ?? base_url('assets/images/photo1.webp'),
+            'jsonLd'          => $jsonLd,
+            'product'         => $product,
             'relatedProducts' => $related,
-            'cartCount' => $this->cartCount(),
-            'active' => 'shop',
+            'cartCount'       => $this->cartCount(),
+            'active'          => 'shop',
         ]);
     }
 
@@ -110,10 +238,38 @@ class Website extends Controller
         ]);
     }
 
-    public function threeR() { return $this->page('3r', 'Reuse. Repair. Recycle.'); }
-    public function support() { return $this->page('support', 'We respond fast. We fix faster.'); }
-    public function faq() { return $this->page('faq', 'Frequently Asked Questions'); }
-    public function privacy() { return $this->page('privacy', 'Privacy Policy'); }
+    public function threeR()
+    {
+        return $this->page('3r', 'Reuse. Repair. Recycle.', [
+            'metaTitle'       => 'Rebuild, Repair & Recycle Services | BSAS India',
+            'metaDescription' => 'BSAS 3R services extend component life through precision rebuilding, repair, and responsible recycling. Reduce downtime and total ownership cost.',
+        ]);
+    }
+
+    public function support()
+    {
+        return $this->page('support', 'We respond fast. We fix faster.', [
+            'metaTitle'       => 'Contact BSAS | Spare Parts Enquiry & Technical Support',
+            'metaDescription' => 'Contact BSAS for spare parts sourcing, equipment enquiries, and after-sales support. Raniganj, WB. We respond within one business day.',
+        ]);
+    }
+
+    public function faq()
+    {
+        return $this->page('faq', 'Frequently Asked Questions', [
+            'metaTitle'       => 'FAQs – BSAS Spare Parts, Equipment & Services',
+            'metaDescription' => 'Find answers to common questions about BSAS products, spare parts ordering, lead times, OEM compatibility, refurbishment services, and the BSAS e-shop.',
+        ]);
+    }
+
+    public function privacy()
+    {
+        return $this->page('privacy', 'Privacy Policy', [
+            'metaTitle'       => 'Privacy Policy | BSAS – Bharat Spares & Services',
+            'metaDescription' => 'Read the BSAS privacy policy — how we collect, use, and protect your personal data when you use our website, e-shop, or contact forms.',
+            'metaRobots'      => 'noindex, follow',
+        ]);
+    }
     public function gallery()
     {
         $albums = $this->galleryAlbumModel()->active()->findAll();
@@ -137,10 +293,12 @@ class Website extends Controller
         unset($album);
 
         return $this->page('gallery-home', 'Gallery Albums', [
-            'albums' => $albums,
-            'extraStyles' => ['/assets/css/gallery.css'],
-            'bodyClass' => 'gallery-body',
-            'active' => 'gallery',
+            'metaTitle'       => 'BSAS Gallery | Field, Workshop & Engineering Albums',
+            'metaDescription' => 'Browse BSAS photo galleries — field operations, workshop activity, drill rig manufacturing, and engineering moments organised as dedicated albums. ' . count($albums) . ' albums published.',
+            'albums'          => $albums,
+            'extraStyles'     => ['/assets/css/gallery.css'],
+            'bodyClass'       => 'gallery-body',
+            'active'          => 'gallery',
         ]);
     }
 
@@ -157,7 +315,15 @@ class Website extends Controller
         $album['cover_image_url'] = $album['cover_image_url'] ?: ($items[0]['image_url'] ?? '/assets/images/b&w.png');
         $album['hero_image_url'] = $album['hero_image_url'] ?: $album['cover_image_url'];
 
+        $albumDesc = trim((string) ($album['description'] ?? ''));
+        if ($albumDesc === '') {
+            $albumDesc = 'Browse photos from the BSAS ' . $album['name'] . ' gallery — field operations, workshop activity, and engineering in action.';
+        }
+
         return $this->page('gallery-album', $album['name'], [
+            'metaTitle'       => $album['name'] . ' | BSAS Gallery',
+            'metaDescription' => mb_strimwidth($albumDesc, 0, 160, '…'),
+            'ogImage'         => $album['cover_image_url'] ?? base_url('assets/images/photo1.webp'),
             'album' => $album,
             'items' => $items,
             'extraStyles' => ['/assets/css/gallery.css'],
@@ -220,6 +386,38 @@ class Website extends Controller
         session()->setFlashdata('success', 'Item removed from cart.');
 
         return redirect()->to('/cart');
+    }
+
+    public function quickQuote()
+    {
+        $rules = [
+            'name'        => 'required|min_length[2]|max_length[100]',
+            'email'       => 'required|valid_email',
+            'machine'     => 'required|min_length[2]|max_length[200]',
+            'GST'         => 'permit_empty|max_length[20]|regex_match[/^[A-Z0-9]{4,20}$/i]',
+            'requirement' => 'required|min_length[5]|max_length[2000]',
+        ];
+
+        if (! $this->validateData($this->request->getPost(), $rules)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'errors'  => $this->validator->getErrors(),
+            ]);
+        }
+
+        $gst = strtoupper(trim((string) $this->request->getPost('GST')));
+
+        $this->quoteRequests()->insert([
+            'request_type' => 'quick-quote',
+            'name'         => (string) $this->request->getPost('name'),
+            'email'        => (string) $this->request->getPost('email'),
+            'company'      => $gst,
+            'phone'        => '',
+            'message'      => 'Machine: ' . (string) $this->request->getPost('machine') . "\n\n" . (string) $this->request->getPost('requirement'),
+            'source_page'  => 'home',
+        ]);
+
+        return $this->response->setJSON(['success' => true]);
     }
 
     public function supportQuote()

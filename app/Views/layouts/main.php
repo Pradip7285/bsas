@@ -3,7 +3,32 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= esc($title) ?> | <?= esc($brand) ?></title>
+    <title><?= esc($metaTitle ?? ($title . ' | ' . $brand)) ?></title>
+
+    <!-- SEO -->
+    <meta name="description" content="<?= esc($metaDescription ?? 'BSAS manufactures drill rigs and supplies rock drill spares, hydraulic assemblies, and refurbishment services for mining and construction. Based in Raniganj, India.') ?>">
+    <meta name="robots" content="<?= esc($metaRobots ?? 'index, follow') ?>">
+    <link rel="canonical" href="<?= site_url(uri_string()) ?>">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="<?= esc($ogType ?? 'website') ?>">
+    <meta property="og:site_name" content="BSAS – Bharat Spares &amp; Services">
+    <meta property="og:title" content="<?= esc($metaTitle ?? ($title . ' | ' . $brand)) ?>">
+    <meta property="og:description" content="<?= esc($metaDescription ?? 'BSAS manufactures drill rigs and supplies rock drill spares, hydraulic assemblies, and refurbishment services for mining and construction. Based in Raniganj, India.') ?>">
+    <meta property="og:url" content="<?= site_url(uri_string()) ?>">
+    <meta property="og:image" content="<?= esc($ogImage ?? base_url('assets/images/photo1.webp')) ?>">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= esc($metaTitle ?? ($title . ' | ' . $brand)) ?>">
+    <meta name="twitter:description" content="<?= esc($metaDescription ?? 'BSAS manufactures drill rigs and supplies rock drill spares, hydraulic assemblies, and refurbishment services for mining and construction. Based in Raniganj, India.') ?>">
+    <meta name="twitter:image" content="<?= esc($ogImage ?? base_url('assets/images/photo1.webp')) ?>">
+
+    <?php if (! empty($jsonLd)): ?>
+    <script type="application/ld+json"><?= $jsonLd ?></script>
+    <?php endif; ?>
+
     <link rel="stylesheet" href="/assets/css/site.css">
     <?php if ($active === 'shop'): ?><link rel="stylesheet" href="/assets/css/shop-premium.css"><?php endif; ?>
     <?php foreach (($extraStyles ?? []) as $style): ?>
@@ -21,14 +46,11 @@
     <header class="site-header">
         <a class="logo" href="/">
             <div class="logo-icon">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="38" height="38">
-                    <rect width="40" height="40" rx="8" fill="#f59b23"/>
-                    <text x="20" y="28" text-anchor="middle" font-size="22" fill="#111" font-weight="900" font-family="Arial">B</text>
-                </svg>
+                <img src="/assets/images/Logo.svg" alt="BSAS logo" width="60" height="60">
             </div>
             <div class="logo-text">
                 <span class="logo-name">BSAS</span>
-                <span class="logo-sub">Engineered for performance</span>
+                <span class="logo-sub">Engineered for Better Tomowrrow</span>
             </div>
         </a>
 
@@ -51,10 +73,7 @@
     <header class="shop-header">
         <a class="logo" href="/e-shop">
             <div class="logo-icon">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="38" height="38">
-                    <rect width="40" height="40" rx="8" fill="#f59b23"/>
-                    <text x="20" y="28" text-anchor="middle" font-size="22" fill="#111" font-weight="900" font-family="Arial">B</text>
-                </svg>
+                <img src="/assets/images/Logo.svg" alt="BSAS logo" width="60" height="60">
             </div>
             <div class="logo-text">
                 <span class="logo-name">BSAS E-Shop</span>
@@ -89,30 +108,27 @@
 <main class="<?= $isShopExperience ? 'shop-main' : '' ?>"><?= view($view, get_defined_vars()) ?></main>
 
 <footer class="site-footer">
-    <div class="footer-cta">
-        <div class="footer-cta-text">
-            <span class="footer-cta-kicker">Ready to Start?</span>
-            <h3>Get Your Custom<br><span class="footer-cta-accent">Quote Today</span></h3>
-            <p>Tell us your application &mdash; we'll engineer the solution.</p>
-        </div>
-        <div class="footer-cta-actions">
-            <a href="/support" class="btn">Contact Us &rarr;</a>
-            <button type="button" class="btn btn-outline btn-outline-light" data-brochure-open>Request Brochure</button>
-        </div>
-    </div>
+    <!--<div class="footer-cta">-->
+    <!--    <div class="footer-cta-text">-->
+    <!--        <span class="footer-cta-kicker">Ready to Start?</span>-->
+    <!--        <h3>Get Your Custom<br><span class="footer-cta-accent">Quote Today</span></h3>-->
+    <!--        <p>Tell us your application &mdash; we'll engineer the solution.</p>-->
+    <!--    </div>-->
+    <!--    <div class="footer-cta-actions">-->
+    <!--        <a href="/support" class="btn">Contact Us &rarr;</a>-->
+    <!--        <button type="button" class="btn btn-outline btn-outline-light" data-brochure-open>Request Brochure</button>-->
+    <!--    </div>-->
+    <!--</div>-->
 
     <div class="footer-mid">
         <div class="footer-brand">
             <div class="footer-logo">
                 <div class="logo-icon">
-                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="48" height="48">
-                        <rect width="40" height="40" rx="8" fill="#f59b23"/>
-                        <text x="20" y="28" text-anchor="middle" font-size="22" fill="#111" font-weight="900" font-family="Arial">B</text>
-                    </svg>
+                    <img src="/assets/images/Logo.svg" alt="BSAS logo" width="100" height="100">
                 </div>
                 <div class="logo-text">
-                    <span class="logo-name">BSAS</span>
-                    <span class="logo-sub">Engineered for performance</span>
+                    <span class="logo-namef">BSAS</span>
+                    <span class="logo-subf">Engineered for performance</span>
                 </div>
             </div>
         </div>
@@ -151,17 +167,17 @@
         <div class="footer-col">
             <h4>Socials</h4>
             <div class="footer-socials">
-                <a href="#" class="social-btn" aria-label="LinkedIn">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                <a href="https://linkedin.com/company/bsas-in" class="social-btn" aria-label="LinkedIn">
+                    <svg viewBox="0 0 24 24" fill="currentColor" ><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
                 </a>
-                <a href="#" class="social-btn" aria-label="Facebook">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
+                <a href="https://www.facebook.com/bharatsparesandservices/" class="social-btn" aria-label="Facebook">
+                    <svg viewBox="0 0 24 24" fill="currentColor" ><path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
                 </a>
-                <a href="#" class="social-btn" aria-label="Instagram">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg>
+                <a href="https://www.instagram.com/bsas.in/" class="social-btn" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" fill="currentColor" ><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg>
                 </a>
-                <a href="#" class="social-btn" aria-label="YouTube">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9c.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83c-.25.9-.83 1.48-1.73 1.73c-.47.13-1.33.22-2.65.28c-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44c-.9-.25-1.48-.83-1.73-1.73c-.13-.47-.22-1.1-.28-1.9c-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83c.25-.9.83-1.48 1.73-1.73c.47-.13 1.33-.22 2.65-.28c1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44c.9.25 1.48.83 1.73 1.73z"/></svg>
+                <a href="https://www.youtube.com/@bharatsparesandservices" class="social-btn" aria-label="YouTube">
+                    <svg viewBox="0 0 24 24" fill="currentColor" ><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9c.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83c-.25.9-.83 1.48-1.73 1.73c-.47.13-1.33.22-2.65.28c-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44c-.9-.25-1.48-.83-1.73-1.73c-.13-.47-.22-1.1-.28-1.9c-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83c.25-.9.83-1.48 1.73-1.73c.47-.13 1.33-.22 2.65-.28c1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44c.9.25 1.48.83 1.73 1.73z"/></svg>
                 </a>
             </div>
         </div>
@@ -169,7 +185,7 @@
 
     <div class="footer-bottom">
         <small>&copy; 2026 Bharat Spares &amp; Services. All rights reserved.</small>
-        <small>Engineered for performance.</small>
+        <a href="https://linkedin.com/in/pradip7285"><small>It's Not Who We Are Underneath, What We Do Defines Us.</small></a>
     </div>
 </footer>
 
@@ -182,7 +198,7 @@
         <form class="brochure-form" data-brochure-form>
             <?= csrf_field() ?>
             <label for="brochure-mobile">Mobile Number</label>
-            <input id="brochure-mobile" type="tel" name="mobile" placeholder="+91 98XXXXXXXX" required>
+            <input id="brochure-mobile" type="tel" name="mobile" placeholder="+91 03414057522" required>
             <p class="brochure-feedback" data-brochure-feedback hidden></p>
             <button type="submit" class="btn">Submit & Download</button>
         </form>

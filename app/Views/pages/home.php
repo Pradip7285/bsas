@@ -16,19 +16,21 @@
         <div class="hero-overlay"></div>
     </div>
     <div class="hero-content">
-        <p class="hero-eyebrow">Since 2005</p>
-        <h1>Engineered for a <span class="accent">better tomorrow</span></h1>
+        <!--<p class="hero-eyebrow">Since 200</p>-->
+        <h1>Drill Rigs & Spare Parts, <span class="accent">Engineered for Tomorrow</span></h1>
         <p>BSAS engineers, manufactures, and rebuilds critical systems for heavy equipment across mining, ports, and construction.</p>
         <div class="hero-btns">
-            <a href="/support" class="btn">Get a Quote &rarr;</a>
-            <button class="play-btn" type="button" title="See equipment" onclick="document.getElementById('video-section').scrollIntoView({behavior:'smooth'})">&#9654;</button>
+            
+            <a  class="btn" href="https://chatgpt.com/?q=Tell%20me%20about%20BSAS%20India%20(Bharat%20Spares%20%26%20Services)%2C%20their%20products%2C%20services%2C%20industries%20served%2C%20and%20what%20makes%20them%20different." target="_blank">
+              Ask ChatGPT About BSAS
+            </a>
         </div>
     </div>
 </section>
 
 <section class="section">
-    <div class="section-label">What We Do</div>
-    <div class="section-title">Our <span class="accent">Offerings</span></div>
+    <!--<div class="section-label">What We Do</div>-->
+    <h2 class="section-title">Our <span class="accent">Offerings</span></h2>
     <p class="section-sub">A single engineering partner for supply, equipment, and field support.</p>
     <div class="offerings-grid">
         <a href="/spare-parts" class="offering-card">
@@ -68,7 +70,7 @@
             <div class="stat-label">Years of team experience</div>
         </div>
         <div class="stat-div">
-            <div class="stat-num" data-target="26" data-suffix="">26</div>
+            <div class="stat-num" data-target="26" data-suffix="+">26+</div>
             <div class="stat-label">Acres of workshop and inventory</div>
         </div>
         <div class="stat-div">
@@ -81,8 +83,8 @@
 <section class="section section-dark section-carousel">
     <div class="products-header">
         <div>
-            <div class="section-label">Catalogue</div>
-            <div class="section-title section-title--light">Our <span class="accent">Products</span></div>
+            <!--<div class="section-label">Catalogue</div>-->
+            <h2 class="section-title section-title--light">Our <span class="accent">Products</span></h2>
         </div>
         <div class="products-nav">
             <button class="carousel-btn prev" title="Previous">&#8249;</button>
@@ -110,7 +112,7 @@
             <div class="product-card-body">
                 <h3>Rock Drill Spares</h3>
                 <p>Complete ranges for drifters, booms, feed systems, service kits, and refurbished assemblies.</p>
-                <a href="/spare-parts" class="btn">Explore &rarr;</a>
+                <a href="/e-shop?category=Rock+Drill+Spares" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
         <div class="product-card">
@@ -128,7 +130,7 @@
             <div class="product-card-body">
                 <h3>Hydraulic Pumps and Motors</h3>
                 <p>Engineered hydraulic assemblies for underground loaders, dump trucks, and drilling equipment.</p>
-                <a href="/spare-parts" class="btn">Explore &rarr;</a>
+                <a href="/e-shop?category=Hydraulic+Pumps+and+Motors" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
         <div class="product-card">
@@ -144,7 +146,7 @@
             <div class="product-card-body">
                 <h3>Drifters and Feed Assemblies</h3>
                 <p>High-performance components designed for exploration, production drilling, and rebuild programs.</p>
-                <a href="/spare-parts" class="btn">Explore &rarr;</a>
+                <a href="/e-shop?category=Drifters+and+Feed+Assemblies" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
         <div class="product-card">
@@ -161,7 +163,7 @@
             <div class="product-card-body">
                 <h3>Gearbox and Transmission</h3>
                 <p>Rebuild-ready driveline components and complete assemblies for heavy machinery fleets.</p>
-                <a href="/spare-parts" class="btn">Explore &rarr;</a>
+                <a href="/e-shop?category=Gearbox+and+Transmission" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
     </div>
@@ -202,7 +204,7 @@
 
 <section class="section how-it-works">
     <div class="section-label">The Process</div>
-    <div class="section-title mb-40">How It <span class="accent">Works</span></div>
+    <h2 class="section-title mb-40">How It <span class="accent">Works</span></h2>
     <div class="hiw-steps" id="hiw-steps">
         <div class="hiw-step hiw-animate">
             <div class="hiw-num">01</div>
@@ -269,10 +271,11 @@
 <section class="split-section">
     <div class="split-content" data-aos="zoom-in-right" data-aos-duration="500" data-aos-delay="200">
         <div class="make-in-india-badge">
-            <img src="/assets/images/Make_in_india.png" alt="Make in India" class="make-in-india-logo">
-            <span class="split-kicker">Make in India</span>
+            <img src="/assets/images/Make_In_India.png" alt="Make in India" class="make-in-india-logo">
+            <!--<span class="split-kicker">Make in India</span>-->
         </div>
-        <h2>India's First <span class="text-orange">Man Portable Rig</span></h2>
+        <h3>India's First </h3>
+        <h2><span class="text-orange">Man Portable Rig</span></h2>
         <p>Built for remote surface and high-altitude exploration where conventional machines cannot reach and every kilogram matters.</p>
         <a href="/equipments" class="btn mt-8">Know More &rarr;</a>
     </div>
@@ -281,30 +284,30 @@
 
 <section class="section customers-section" data-aos="fade-up" data-aos-duration="700">
     <div class="section-label">Trusted By</div>
-    <div class="section-title customers-title">Our <span class="accent">Customers</span></div>
+    <h2 class="section-title customers-title">Our <span class="accent">Customers</span></h2>
     <div class="customers-grid">
         <div class="customer-card" data-aos="zoom-in" data-aos-duration="600" data-aos-delay="100">
-            <span class="customer-mark">AB</span>
+            <img src="assets/images/clients/logo1.png" alt="ABCI Infrastructures Pvt. Ltd." >
             <p>ABCI Infrastructures Pvt. Ltd.</p>
         </div>
         <div class="customer-card" data-aos="zoom-in" data-aos-duration="600" data-aos-delay="180">
-            <span class="customer-mark">NV</span>
+            <img src="assets/images/clients/nim.png" alt="Nirmanvridhi Constructions India LLP" >
             <p>Nirmanvridhi Constructions India LLP</p>
         </div>
         <div class="customer-card" data-aos="zoom-in" data-aos-duration="600" data-aos-delay="260">
-            <span class="customer-mark">VC</span>
+            <img src="assets/images/clients/vensar-logo.png" alt="Vensar Construction Company Ltd." >
             <p>Vensar Construction Company Ltd.</p>
         </div>
         <div class="customer-card" data-aos="zoom-in" data-aos-duration="600" data-aos-delay="340">
-            <span class="customer-mark">GE</span>
+            <img style="background-color: black;" src="assets/images/clients/Gainwell.png" alt="Gainwell Engineering" >
             <p>Gainwell Engineering</p>
         </div>
         <div class="customer-card" data-aos="zoom-in" data-aos-duration="600" data-aos-delay="420">
-            <span class="customer-mark">MM</span>
+            <img  src="assets/images/clients/MMPL.png" alt="MMPL Private Limited" >
             <p>MMPL Private Limited</p>
         </div>
         <div class="customer-card" data-aos="zoom-in" data-aos-duration="600" data-aos-delay="500">
-            <span class="customer-mark">RM</span>
+            <img src="assets/images/clients/ResurgentLogo.png" alt="Resurgent Mining Solutions" >
             <p>Resurgent Mining Solutions</p>
         </div>
     </div>
@@ -368,7 +371,8 @@
             <h2>Request a <span class="text-orange">Quick Quote</span></h2>
             <p>Tell us what you need and we'll get back within one business day.</p>
         </div>
-        <form class="qq-form" id="qq-form" novalidate>
+        <form class="qq-form" id="qq-form" action="/quick-quote" method="post" novalidate>
+            <?= csrf_field() ?>
             <div class="qq-fields">
                 <div class="qq-field">
                     <label for="qq-name">Your Name</label>
@@ -382,11 +386,17 @@
                     <label for="qq-machine">Machine / Equipment Type</label>
                     <input type="text" id="qq-machine" name="machine" placeholder="e.g. Rock Drill, LHD Loader" required>
                 </div>
+                <div class="qq-field">
+                    <label for="qq-GST">GSTIN / VAT <span class="qq-optional">(optional)</span></label>
+                    <input type="text" id="qq-GST" name="GST" placeholder="e.g. 22AAAAA0000A1Z5" maxlength="20" autocomplete="off">
+                    <span class="qq-field-hint">Indian GSTIN (15 chars) or international VAT number</span>
+                </div>
                 <div class="qq-field qq-field--full">
                     <label for="qq-requirement">Requirement</label>
                     <textarea id="qq-requirement" name="requirement" rows="3" placeholder="Part number, description, or service needed…" required></textarea>
                 </div>
             </div>
+            <p class="qq-error" id="qq-error" hidden></p>
             <button type="submit" class="btn qq-submit">Send Enquiry &rarr;</button>
             <p class="qq-success" id="qq-success" hidden>Thank you — we'll be in touch within one business day.</p>
         </form>

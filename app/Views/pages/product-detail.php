@@ -190,25 +190,21 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                 </form>
             </div>
 
-            <!-- Tabs -->
-            <div class="sp-tabs-card">
-                <nav class="sp-tab-nav">
-                    <?php if ($hasSpecs): ?>
-                        <button class="sp-tab-btn is-active" data-tab="specs">Specifications</button>
-                        <button class="sp-tab-btn" data-tab="desc">Description</button>
-                    <?php else: ?>
-                        <button class="sp-tab-btn is-active" data-tab="desc">Description</button>
-                    <?php endif; ?>
-                    <?php if ($hasCompatibility): ?>
-                        <button class="sp-tab-btn" data-tab="compat">Compatibility</button>
-                    <?php endif; ?>
-                    <button class="sp-tab-btn" data-tab="quote">Request Quote</button>
-                    <button class="sp-tab-btn" data-tab="why">Why E-Shop</button>
-                </nav>
+            <!-- Content sections — always visible (no tabs) for SEO indexing -->
+            <div class="sp-content-sections">
 
-                <!-- Specifications panel -->
+                <!-- Description -->
+                <section class="sp-content-block" id="description">
+                    <h2 class="sp-section-heading">Product Description</h2>
+                    <div class="sp-desc-body">
+                        <?= nl2br(esc($product['description'] ?: $product['short_description'])) ?>
+                    </div>
+                </section>
+
+                <!-- Technical Specifications -->
                 <?php if ($hasSpecs): ?>
-                <div class="sp-tab-panel is-active" id="sp-tab-specs">
+                <section class="sp-content-block" id="specifications">
+                    <h2 class="sp-section-heading">Technical Specifications</h2>
                     <table class="sp-specs-tab-table">
                         <tbody>
                             <?php foreach ($specs as $row): ?>
@@ -221,83 +217,110 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                </div>
+                </section>
                 <?php endif; ?>
 
-                <!-- Description panel -->
-                <div class="sp-tab-panel <?= $hasSpecs ? '' : 'is-active' ?>" id="sp-tab-desc">
-                    <p><?= nl2br(esc($product['description'] ?: $product['short_description'])) ?></p>
-                </div>
-
-                <!-- Compatibility panel -->
+                <!-- Compatible Equipment -->
                 <?php if ($hasCompatibility): ?>
-                <div class="sp-tab-panel" id="sp-tab-compat">
-                    <p class="sp-compat-intro">Compatible with the following equipment:</p>
-                    <p><?= nl2br(esc($product['compatibility'])) ?></p>
-                </div>
+                <section class="sp-content-block" id="compatibility">
+                    <h2 class="sp-section-heading">Compatible Equipment</h2>
+                    <p class="sp-compat-intro">This <?= esc(strtolower($product['category'])) ?> is validated for use with the following machines and systems:</p>
+                    <ul class="sp-compat-list">
+                        <?php foreach (array_filter(array_map('trim', explode("\n", $product['compatibility']))) as $compat): ?>
+                            <li><?= esc($compat) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </section>
                 <?php endif; ?>
 
-                <!-- Quote form panel -->
-                <div class="sp-tab-panel" id="sp-tab-quote">
-                    <?php if (! empty($errors)): ?>
-                        <div class="sp-flash-err"><?= esc(implode(' ', $errors)) ?></div>
-                    <?php endif; ?>
-                    <form method="post" action="/product-quote/<?= esc($product['slug']) ?>">
-                        <?= csrf_field() ?>
-                        <div class="sp-quote-grid">
-                            <div class="sp-form-group">
-                                <label class="sp-form-label">Name *</label>
-                                <input type="text" name="name" value="<?= esc(old('name')) ?>" required>
-                            </div>
-                            <div class="sp-form-group">
-                                <label class="sp-form-label">Company</label>
-                                <input type="text" name="company" value="<?= esc(old('company')) ?>">
-                            </div>
-                            <div class="sp-form-group">
-                                <label class="sp-form-label">Email</label>
-                                <input type="email" name="email" value="<?= esc(old('email')) ?>">
-                            </div>
-                            <div class="sp-form-group">
-                                <label class="sp-form-label">Phone *</label>
-                                <input type="tel" name="phone" value="<?= esc(old('phone')) ?>" required>
-                            </div>
-                            <div class="sp-form-group">
-                                <label class="sp-form-label">Designation</label>
-                                <input type="text" name="designation" value="<?= esc(old('designation')) ?>">
-                            </div>
-                            <div class="sp-form-group">
-                                <label class="sp-form-label">Quantity *</label>
-                                <input type="number" min="1" name="quantity"
-                                       value="<?= esc(old('quantity', (string) $moq)) ?>" required>
-                            </div>
-                            <div class="sp-form-group sp-form-full">
-                                <label class="sp-form-label">Requirement Details</label>
-                                <textarea name="message"><?= esc(old('message')) ?></textarea>
-                            </div>
-                            <div class="sp-form-full">
-                                <button type="submit" class="btn">Submit Quote Request</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                <!-- Applications & Industries -->
+                <section class="sp-content-block" id="applications">
+                    <h2 class="sp-section-heading">Applications &amp; Industries</h2>
+                    <p>This <?= esc(strtolower($product['category'])) ?> is sourced and engineering-validated by BSAS for use across mining, construction, and geotechnical drilling operations. All components are benchmarked against OEM specifications for fit, form, and function in demanding field conditions across India.</p>
+                    <ul class="sp-app-list">
+                        <li>Surface and underground rock drilling</li>
+                        <li>Mining fleet maintenance and scheduled overhaul</li>
+                        <li>Tunnelling and construction machinery</li>
+                        <li>Geotechnical investigation and exploration rigs</li>
+                    </ul>
+                    <p class="sp-app-links">
+                        Browse more <a href="/e-shop?category=<?= urlencode($product['category']) ?>"><?= esc($product['category']) ?></a>
+                        &nbsp;&middot;&nbsp;
+                        <a href="/spare-parts">All Spare Parts</a>
+                        &nbsp;&middot;&nbsp;
+                        <a href="/support">Get Engineering Advice</a>
+                    </p>
+                </section>
 
-                <!-- Why Us panel -->
-                <div class="sp-tab-panel" id="sp-tab-why">
-                    <p>The BSAS E-Shop is built around the B2B procurement workflow — shortlist, bundle, and submit a single coordinated RFQ rather than sending multiple one-off emails.</p>
-                    <div class="sp-checklist">
-                        <div class="sp-check">Shortlist the part and quantity before reaching out to sales — saves multiple back-and-forth messages.</div>
-                        <div class="sp-check">Bundle multiple products into one quote basket for faster commercial handling across your team.</div>
-                        <div class="sp-check">Use the support team when interchange, application matching, or lead-time validation is required before ordering.</div>
+                <!-- How to Request a Quote -->
+                <section class="sp-content-block" id="how-to-order">
+                    <h2 class="sp-section-heading">How to Request a Quote</h2>
+                    <ol class="sp-how-list">
+                        <li>Add this product to your <strong>Quote Basket</strong> using the quantity selector above.</li>
+                        <li>Include other required parts in the same basket for a single consolidated RFQ.</li>
+                        <li>Submit from the <a href="/cart">Quote Basket</a> — the BSAS sales team will respond within <strong>one business day</strong> with pricing and lead time.</li>
+                    </ol>
+
+                    <details class="sp-quote-details">
+                        <summary class="sp-quote-summary">Or submit a direct quote request for this product</summary>
+                        <?php if (! empty($errors)): ?>
+                            <div class="sp-flash-err" style="margin-top:12px"><?= esc(implode(' ', $errors)) ?></div>
+                        <?php endif; ?>
+                        <form method="post" action="/product-quote/<?= esc($product['slug']) ?>" class="sp-quote-form-inline">
+                            <?= csrf_field() ?>
+                            <div class="sp-quote-grid">
+                                <div class="sp-form-group">
+                                    <label class="sp-form-label">Name *</label>
+                                    <input type="text" name="name" value="<?= esc(old('name')) ?>" required>
+                                </div>
+                                <div class="sp-form-group">
+                                    <label class="sp-form-label">Company</label>
+                                    <input type="text" name="company" value="<?= esc(old('company')) ?>">
+                                </div>
+                                <div class="sp-form-group">
+                                    <label class="sp-form-label">Email</label>
+                                    <input type="email" name="email" value="<?= esc(old('email')) ?>">
+                                </div>
+                                <div class="sp-form-group">
+                                    <label class="sp-form-label">Phone *</label>
+                                    <input type="tel" name="phone" value="<?= esc(old('phone')) ?>" required>
+                                </div>
+                                <div class="sp-form-group">
+                                    <label class="sp-form-label">Designation</label>
+                                    <input type="text" name="designation" value="<?= esc(old('designation')) ?>">
+                                </div>
+                                <div class="sp-form-group">
+                                    <label class="sp-form-label">Quantity *</label>
+                                    <input type="number" min="1" name="quantity" value="<?= esc(old('quantity', (string) $moq)) ?>" required>
+                                </div>
+                                <div class="sp-form-group sp-form-full">
+                                    <label class="sp-form-label">Requirement Details</label>
+                                    <textarea name="message"><?= esc(old('message')) ?></textarea>
+                                </div>
+                                <div class="sp-form-full">
+                                    <button type="submit" class="btn">Submit Quote Request</button>
+                                </div>
+                            </div>
+                        </form>
+                    </details>
+                </section>
+
+                <!-- Why Source from BSAS -->
+                <section class="sp-content-block" id="why-bsas">
+                    <h2 class="sp-section-heading">Why Source from BSAS</h2>
+                    <ul class="sp-why-list">
+                        <li><strong>Engineering validation</strong> — Every component is benchmarked against OEM specifications before supply. No unvetted alternatives reach our catalogue.</li>
+                        <li><strong>Reverse engineering capability</strong> — Where OEM drawings or sources are unavailable, BSAS manufactures to sample or field measurement.</li>
+                        <li><strong>Fleet-scale procurement</strong> — Consolidate multiple parts into a single RFQ, reducing procurement overhead for large mining and construction fleets.</li>
+                        <li><strong>After-sales accountability</strong> — BSAS takes engineering responsibility for every component supplied. If it fails under normal operating conditions, we investigate and act.</li>
+                    </ul>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;">
+                        <a href="/cart" class="btn btn-dark">Review Basket</a>
+                        <a href="/support" class="btn btn-outline">Contact Sales Team</a>
                     </div>
-                    <div class="sp-support-band" style="margin-top:18px">
-                        <p>For project buying, fleet planning, or compatibility queries, connect with the BSAS sales team directly.</p>
-                        <div class="sp-support-actions">
-                            <a href="/cart" class="btn btn-dark">Review Basket</a>
-                            <a href="/support" class="btn btn-outline">Contact Support</a>
-                        </div>
-                    </div>
-                </div>
-            </div><!-- /sp-tabs-card -->
+                </section>
+
+            </div><!-- /sp-content-sections -->
 
         </div><!-- /sp-product-info -->
     </div><!-- /sp-detail-inner -->
@@ -359,29 +382,72 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
 .sp-moq-note { font-size:11px; color:#9ca3af; margin-left:4px; }
 .sp-datasheet-row { margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb; }
 .sp-datasheet-btn { width:100%; text-align:center; font-size:13px; }
-.sp-compat-intro { font-size:13px; color:#6b7280; margin-bottom:8px; }
 .sp-specs-tab-table { width:100%; border-collapse:collapse; font-size:13.5px; }
 .sp-specs-tab-table th,
 .sp-specs-tab-table td { padding:9px 12px; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:top; }
 .sp-specs-tab-table th { font-weight:700; background:#f9fafb; width:38%; }
 .sp-specs-tab-table tr:last-child th,
 .sp-specs-tab-table tr:last-child td { border-bottom:none; }
+
+/* Content sections */
+.sp-content-sections { display:flex; flex-direction:column; gap:0; }
+.sp-content-block {
+    padding:24px 0;
+    border-bottom:1px solid #f0f0f0;
+}
+.sp-content-block:last-child { border-bottom:none; }
+.sp-section-heading {
+    font-size:15px;
+    font-weight:700;
+    color:#111;
+    margin-bottom:14px;
+    padding-bottom:8px;
+    border-bottom:2px solid #f59b23;
+    display:inline-block;
+}
+.sp-desc-body { font-size:14px; line-height:1.75; color:#444; }
+.sp-compat-intro { font-size:13px; color:#6b7280; margin-bottom:10px; }
+.sp-compat-list, .sp-app-list, .sp-why-list {
+    list-style:none; padding:0; margin:0 0 12px;
+    display:flex; flex-direction:column; gap:8px;
+}
+.sp-compat-list li, .sp-app-list li {
+    font-size:13.5px; color:#374151;
+    padding-left:20px; position:relative;
+}
+.sp-compat-list li::before, .sp-app-list li::before {
+    content:'›'; position:absolute; left:0; color:#f59b23; font-weight:700;
+}
+.sp-why-list li {
+    font-size:13.5px; color:#374151;
+    padding:10px 10px 10px 38px; position:relative;
+    background:#fafafa; border-radius:6px;
+    border-left:3px solid #f59b23;
+}
+.sp-how-list {
+    padding-left:20px; margin:0 0 18px;
+    display:flex; flex-direction:column; gap:10px;
+}
+.sp-how-list li { font-size:13.5px; color:#374151; line-height:1.6; }
+.sp-app-links { font-size:13px; color:#6b7280; margin-top:12px; }
+.sp-app-links a { color:#f59b23; text-decoration:none; font-weight:600; }
+.sp-app-links a:hover { text-decoration:underline; }
+
+/* Quote details/summary */
+.sp-quote-details { margin-top:16px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; }
+.sp-quote-summary {
+    padding:12px 16px;
+    font-size:13.5px; font-weight:600; color:#374151;
+    cursor:pointer; background:#f9fafb;
+    list-style:none;
+    display:flex; align-items:center; gap:8px;
+}
+.sp-quote-summary::before { content:'＋'; color:#f59b23; font-weight:700; }
+.sp-quote-details[open] .sp-quote-summary::before { content:'－'; }
+.sp-quote-form-inline { padding:16px; }
 </style>
 
 <script>
-(function () {
-    document.querySelectorAll('.sp-tab-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var id = this.dataset.tab;
-            document.querySelectorAll('.sp-tab-btn').forEach(function (b) { b.classList.remove('is-active'); });
-            document.querySelectorAll('.sp-tab-panel').forEach(function (p) { p.classList.remove('is-active'); });
-            this.classList.add('is-active');
-            var panel = document.getElementById('sp-tab-' + id);
-            if (panel) { panel.classList.add('is-active'); }
-        });
-    });
-})();
-
 var _spMoq = <?= (int) $moq ?>;
 function spAdjQty(delta) {
     var input = document.getElementById('sp-qty');

@@ -202,6 +202,45 @@ if ($specsOld !== '') {
                       placeholder="Detailed product description shown on the product page."><?= esc(old('description', $product['description'] ?? '')) ?></textarea>
         </div>
 
+        <!-- ── Pricing ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">Pricing</h3>
+            <p class="adm-field-hint" style="margin:4px 0 0">Set a real price to make this product orderable through checkout. Leave at 0 to keep it quote-only.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-real-price">Price</label>
+            <input id="pf-real-price" type="number" step="0.01" min="0" name="price"
+                   value="<?= esc(old('price', (string) ($product['price'] ?? '0'))) ?>">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-compare-price">Compare-at Price</label>
+            <input id="pf-compare-price" type="number" step="0.01" min="0" name="compare_at_price"
+                   value="<?= esc(old('compare_at_price', (string) ($product['compare_at_price'] ?? ''))) ?>"
+                   placeholder="Optional — shown as a strikethrough MRP">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-currency">Currency</label>
+            <input id="pf-currency" type="text" name="currency" maxlength="3"
+                   value="<?= esc(old('currency', (string) ($product['currency'] ?? 'INR'))) ?>">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-tax-rate">Tax Rate (%)</label>
+            <input id="pf-tax-rate" type="number" step="0.01" min="0" name="tax_rate"
+                   value="<?= esc(old('tax_rate', (string) ($product['tax_rate'] ?? '0'))) ?>"
+                   placeholder="e.g. 18 for GST">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-stock-qty">Stock Quantity</label>
+            <input id="pf-stock-qty" type="number" step="1" min="0" name="stock_quantity"
+                   value="<?= esc(old('stock_quantity', (string) ($product['stock_quantity'] ?? '0'))) ?>">
+            <p class="adm-field-hint">Decremented automatically when a customer places an order.</p>
+        </div>
+
         <!-- ── Availability & Stock ── -->
         <div class="form-full adm-section-divider">
             <h3 class="adm-section-head">Availability &amp; Stock</h3>
@@ -276,16 +315,55 @@ if ($specsOld !== '') {
                    placeholder="e.g. Alloy Steel, Stainless Steel 316">
         </div>
 
-        <!-- ── Compatibility ── -->
+        <!-- ── Compatible Vehicles ── -->
         <div class="form-full adm-section-divider">
-            <h3 class="adm-section-head">Compatibility</h3>
+            <h3 class="adm-section-head">Compatible Vehicles</h3>
+            <p class="adm-field-hint" style="margin:4px 0 0">Select every vehicle model this product fits, grouped by OEM. Shown as a Compatibility section on the product page, and used by the storefront's vehicle filter.</p>
         </div>
 
-        <div class="form-group form-full">
-            <label for="pf-compat">Compatible With</label>
-            <textarea id="pf-compat" name="compatibility" style="min-height:80px"
-                      placeholder="List compatible machine makes and models (one per line or comma-separated)..."><?= esc(old('compatibility', $product['compatibility'] ?? '')) ?></textarea>
-            <p class="adm-field-hint">Shown as a Compatibility tab on the product page when populated.</p>
+        <div class="form-full">
+            <?php if (empty($vehiclesByOem)): ?>
+                <p class="adm-field-hint">No vehicles registered yet. <a href="/admin/vehicles" style="color:var(--adm-orange)">Add vehicles</a> to enable compatibility selection.</p>
+            <?php else: ?>
+                <?php foreach ($vehiclesByOem as $oemName => $vehiclesForOem): ?>
+                    <div style="margin-bottom:14px">
+                        <p style="font-size:12px;font-weight:800;color:var(--adm-navy);text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px"><?= esc($oemName) ?></p>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px 18px">
+                            <?php foreach ($vehiclesForOem as $vehicle): ?>
+                                <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--adm-text-2);cursor:pointer">
+                                    <input type="checkbox" name="vehicle_ids[]" value="<?= esc((string) $vehicle['id']) ?>"
+                                           style="width:16px;height:16px;accent-color:var(--adm-orange)"
+                                           <?= in_array($vehicle['id'], old('vehicle_ids', $productVehicleIds ?? [])) ? 'checked' : '' ?>>
+                                    <?= esc($vehicle['name']) ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+
+        <!-- ── Labels ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">Labels</h3>
+            <p class="adm-field-hint" style="margin:4px 0 0">Free-form merchandising tags (e.g. New Arrival, Best Seller). Shown as badges and used by the storefront's label filter.</p>
+        </div>
+
+        <div class="form-full">
+            <?php if (empty($labels)): ?>
+                <p class="adm-field-hint">No labels registered yet. <a href="/admin/labels" style="color:var(--adm-orange)">Add labels</a> to enable tagging.</p>
+            <?php else: ?>
+                <div style="display:flex;flex-wrap:wrap;gap:8px 18px">
+                    <?php foreach ($labels as $label): ?>
+                        <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--adm-text-2);cursor:pointer">
+                            <input type="checkbox" name="label_ids[]" value="<?= esc((string) $label['id']) ?>"
+                                   style="width:16px;height:16px;accent-color:var(--adm-orange)"
+                                   <?= in_array($label['id'], old('label_ids', $productLabelIds ?? [])) ? 'checked' : '' ?>>
+                            <?= esc($label['name']) ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- ── Documents ── -->
@@ -314,6 +392,82 @@ if ($specsOld !== '') {
                 &#43; Add Specification Row
             </button>
             <input type="hidden" name="specifications" id="specs-json-input">
+        </div>
+
+        <!-- ── SEO & Structured Data ── -->
+        <div class="form-full adm-section-divider">
+            <h3 class="adm-section-head">SEO &amp; Structured Data</h3>
+            <p class="adm-field-hint" style="margin:4px 0 0">All fields optional. Leave blank to fall back to auto-generated titles/descriptions from the product name and description.</p>
+        </div>
+
+        <div class="form-group form-full">
+            <label for="pf-meta-title">Meta Title <span class="admin-badge admin-badge--muted" style="margin-left:4px">max 160 chars</span></label>
+            <input id="pf-meta-title" type="text" name="meta_title" maxlength="160"
+                   value="<?= esc(old('meta_title', $product['meta_title'] ?? '')) ?>"
+                   placeholder="Overrides the auto-generated page <title>">
+            <p id="meta-title-count" class="adm-field-hint" style="text-align:right"></p>
+        </div>
+
+        <div class="form-group form-full">
+            <label for="pf-meta-desc">Meta Description <span class="admin-badge admin-badge--muted" style="margin-left:4px">max 300 chars</span></label>
+            <textarea id="pf-meta-desc" name="meta_description" maxlength="300"
+                      placeholder="Overrides the auto-generated meta description"><?= esc(old('meta_description', $product['meta_description'] ?? '')) ?></textarea>
+            <p id="meta-desc-count" class="adm-field-hint" style="text-align:right"></p>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-meta-keyword">Search Keywords</label>
+            <input id="pf-meta-keyword" type="text" name="meta_keyword"
+                   value="<?= esc(old('meta_keyword', $product['meta_keyword'] ?? '')) ?>"
+                   placeholder="comma, separated, keywords">
+            <p class="adm-field-hint">Used to match this product in on-site search (admin and storefront). Not emitted as an SEO meta tag — search engines ignore that anyway.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-focus-keyword">Focus Keyword</label>
+            <input id="pf-focus-keyword" type="text" name="focus_keyword"
+                   value="<?= esc(old('focus_keyword', $product['focus_keyword'] ?? '')) ?>"
+                   placeholder="e.g. hydraulic pump seal kit">
+            <p class="adm-field-hint">Internal reference for the term this page targets &mdash; not shown publicly.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-image-alt">Image Alt Text</label>
+            <input id="pf-image-alt" type="text" name="image_alt_text"
+                   value="<?= esc(old('image_alt_text', $product['image_alt_text'] ?? '')) ?>"
+                   placeholder="Falls back to the product name">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-og-image">OG Image URL</label>
+            <input id="pf-og-image" type="text" name="og_image"
+                   value="<?= esc(old('og_image', $product['og_image'] ?? '')) ?>"
+                   placeholder="Falls back to the product image">
+        </div>
+
+        <div class="form-group form-full">
+            <label for="pf-canonical">Canonical URL</label>
+            <input id="pf-canonical" type="text" name="canonical_url"
+                   value="<?= esc(old('canonical_url', $product['canonical_url'] ?? '')) ?>"
+                   placeholder="Leave blank to auto-generate from the product page URL">
+        </div>
+
+        <div class="form-group">
+            <label for="pf-structured-type">Structured Data Type</label>
+            <input id="pf-structured-type" type="text" name="structured_data_type"
+                   value="<?= esc(old('structured_data_type', $product['structured_data_type'] ?? 'Product')) ?>"
+                   placeholder="Product">
+            <p class="adm-field-hint">Schema.org @type used in the product page's JSON-LD.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="pf-robots">Robots Meta</label>
+            <?php $currentRobots = old('robots_meta', $product['robots_meta'] ?? 'index, follow'); ?>
+            <select id="pf-robots" name="robots_meta">
+                <?php foreach (['index, follow', 'noindex, follow', 'index, nofollow', 'noindex, nofollow'] as $robotsOption): ?>
+                    <option value="<?= esc($robotsOption) ?>" <?= $currentRobots === $robotsOption ? 'selected' : '' ?>><?= esc($robotsOption) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
 
         <!-- ── Image preview ── -->
@@ -534,6 +688,22 @@ if ($specsOld !== '') {
     }
     shortEl.addEventListener('input', updateCount);
     updateCount();
+
+    /* ── SEO field counters ── */
+    function bindCounter(fieldId, countId, max) {
+        var field = document.getElementById(fieldId);
+        var count = document.getElementById(countId);
+        if (!field || !count) { return; }
+        function update() {
+            var len = field.value.length;
+            count.textContent = len + ' / ' + max;
+            count.style.color = len > max * 0.9 ? '#dc2626' : 'var(--adm-faint)';
+        }
+        field.addEventListener('input', update);
+        update();
+    }
+    bindCounter('pf-meta-title', 'meta-title-count', 160);
+    bindCounter('pf-meta-desc', 'meta-desc-count', 300);
 
 })();
 

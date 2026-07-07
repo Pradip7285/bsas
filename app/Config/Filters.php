@@ -10,6 +10,7 @@ use CodeIgniter\Filters\ForceHTTPS;
 use CodeIgniter\Filters\Honeypot;
 use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\PageCache;
+use App\Filters\CustomerAuth;
 use App\Filters\ResponseMetrics;
 use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
@@ -36,6 +37,7 @@ class Filters extends BaseFilters
         'pagecache'       => PageCache::class,
         'performance'     => PerformanceMetrics::class,
         'responsemetrics' => ResponseMetrics::class,
+        'customerAuth'    => CustomerAuth::class,
     ];
 
     /**
@@ -109,5 +111,7 @@ class Filters extends BaseFilters
      *
      * @var array<string, array<string, list<string>>>
      */
-    public array $filters = [];
+    public array $filters = [
+        'customerAuth' => ['before' => ['account/*', 'checkout/*']],
+    ];
 }

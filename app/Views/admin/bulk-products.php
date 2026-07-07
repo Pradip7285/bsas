@@ -84,6 +84,7 @@ $mastheadText = 'Run repeatable catalogue imports and exports without row-by-row
                     <div class="admin-column-item"><strong>Required</strong><span>`name`, `category`</span></div>
                     <div class="admin-column-item"><strong>Recommended</strong><span>`sku`, `slug`, `short_description`, `description`</span></div>
                     <div class="admin-column-item"><strong>Optional</strong><span>`image_url`, `price_label`, `sort_order`, `is_active`</span></div>
+                    <div class="admin-column-item"><strong>Compatibility &amp; tags</strong><span>`vehicles`, `labels` &mdash; comma-separated names, e.g. "MPR100, HP-500 Series Pump".</span></div>
                 </div>
             </section>
 
@@ -98,6 +99,8 @@ $mastheadText = 'Run repeatable catalogue imports and exports without row-by-row
                     <div class="admin-column-item"><strong>Match order</strong><span>SKU, then slug, then product name.</span></div>
                     <div class="admin-column-item"><strong>New rows</strong><span>If no match is found, a new product record is created.</span></div>
                     <div class="admin-column-item"><strong>Status values</strong><span>Use `1` for active and `0` for hidden.</span></div>
+                    <div class="admin-column-item"><strong>Vehicles</strong><span>Matched against existing Vehicles by name; unknown names are skipped (Vehicles need an OEM, so none are auto-created here).</span></div>
+                    <div class="admin-column-item"><strong>Labels</strong><span>Matched by name, and auto-created if a label doesn't exist yet.</span></div>
                 </div>
             </section>
         </div>

@@ -5,17 +5,26 @@ namespace App\Controllers;
 use App\Libraries\SimpleSpreadsheetReader;
 use App\Models\BrochureLeadModel;
 use App\Models\CategoryModel;
+use App\Models\DivisionModel;
 use App\Models\GalleryAlbumModel;
 use App\Models\GalleryItemModel;
+use App\Models\LabelModel;
+use App\Models\OemModel;
+use App\Models\ProductLabelModel;
 use App\Models\ProductModel;
+use App\Models\ProductVehicleModel;
 use App\Models\QuoteRequestItemModel;
 use App\Models\QuoteRequestModel;
+use App\Models\VehicleModel;
+use App\Traits\AdminGuard;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 class AdminController extends Controller
 {
+    use AdminGuard;
+
     public function login()
     {
         if ($this->isAuthenticated()) {
@@ -186,15 +195,68 @@ class AdminController extends Controller
         $search   = trim((string) $this->request->getGet('q'));
         $status   = trim((string) $this->request->getGet('status'));
         $category = trim((string) $this->request->getGet('category'));
+        $stock    = trim((string) $this->request->getGet('stock'));
+        $featured = trim((string) $this->request->getGet('featured'));
+        $sort     = trim((string) $this->request->getGet('sort'));
+        $dir      = strtolower((string) $this->request->getGet('dir')) === 'desc' ? 'DESC' : 'ASC';
+        $page     = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage  = 30;
 
-        $builder = $this->products()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC');
+        if ($status !== 'active' && $status !== 'hidden') {
+            $status = '';
+        }
+        if (! in_array($stock, ['in_stock', 'made_to_order', 'out_of_stock'], true)) {
+            $stock = '';
+        }
+        if ($featured !== '1' && $featured !== '0') {
+            $featured = '';
+        }
+        if (! in_array($sort, ['name', 'sku', 'category', 'price', 'stock_quantity', 'sort_order'], true)) {
+            $sort = '';
+        }
+
+        $totalCount = $this->buildProductListQuery($search, $status, $category, $stock, $featured)->countAllResults();
+        $pageCount  = max(1, (int) ceil($totalCount / $perPage));
+        $page       = min($page, $pageCount);
+
+        $dataBuilder = $this->buildProductListQuery($search, $status, $category, $stock, $featured);
+        if ($sort !== '') {
+            $dataBuilder->orderBy($sort, $dir);
+        } else {
+            $dataBuilder->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC');
+        }
+
+        return view('admin/products', [
+            'products'       => $dataBuilder->findAll($perPage, ($page - 1) * $perPage),
+            'categories'     => $this->loadCategories(),
+            'productSearch'  => $search,
+            'activeStatus'   => $status,
+            'activeCategory' => $category,
+            'activeStock'    => $stock,
+            'activeFeatured' => $featured,
+            'activeSort'     => $sort,
+            'activeDir'      => strtolower($dir),
+            'page'           => $page,
+            'pageCount'      => $pageCount,
+            'resultCount'    => $totalCount,
+            'stats'          => $this->dashboardStats(),
+            'catalogAudit'   => $this->catalogAudit(),
+        ]);
+    }
+
+    /** Shared search/filter conditions for the admin product list (count query and data query). */
+    private function buildProductListQuery(string $search, string $status, string $category, string $stock, string $featured): ProductModel
+    {
+        $builder = $this->products();
 
         if ($search !== '') {
             $builder->groupStart()
                 ->like('name', $search)
                 ->orLike('sku', $search)
+                ->orLike('part_number', $search)
                 ->orLike('category', $search)
-                ->orLike('description', $search)
+                ->orLike('meta_title', $search)
+                ->orLike('meta_keyword', $search)
                 ->groupEnd();
         }
 
@@ -202,23 +264,60 @@ class AdminController extends Controller
             $builder->where('is_active', 1);
         } elseif ($status === 'hidden') {
             $builder->where('is_active', 0);
-        } else {
-            $status = '';
         }
 
         if ($category !== '') {
             $builder->where('category', $category);
         }
 
-        return view('admin/products', [
-            'products'       => $builder->findAll(),
-            'categories'     => $this->loadCategories(),
-            'productSearch'  => $search,
-            'activeStatus'   => $status,
-            'activeCategory' => $category,
-            'stats'          => $this->dashboardStats(),
-            'catalogAudit'   => $this->catalogAudit(),
-        ]);
+        if ($stock !== '') {
+            $builder->where('stock_status', $stock);
+        }
+
+        if ($featured !== '') {
+            $builder->where('is_featured', (int) $featured);
+        }
+
+        return $builder;
+    }
+
+    public function bulkAction()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $action = (string) $this->request->getPost('bulk_action');
+        $ids    = array_values(array_filter(array_map('intval', (array) $this->request->getPost('product_ids')), static fn(int $id): bool => $id > 0));
+
+        if ($ids === [] || ! in_array($action, ['activate', 'deactivate', 'delete'], true)) {
+            session()->setFlashdata('errors', ['Select at least one product and a valid bulk action.']);
+
+            return redirect()->to('/admin/products');
+        }
+
+        $model = $this->products();
+
+        switch ($action) {
+            case 'activate':
+                $model->whereIn('id', $ids)->update(null, ['is_active' => 1]);
+                $message = 'Activated ' . count($ids) . ' product(s).';
+                break;
+
+            case 'deactivate':
+                $model->whereIn('id', $ids)->update(null, ['is_active' => 0]);
+                $message = 'Hidden ' . count($ids) . ' product(s).';
+                break;
+
+            case 'delete':
+                $model->whereIn('id', $ids)->delete();
+                $message = 'Deleted ' . count($ids) . ' product(s).';
+                break;
+        }
+
+        session()->setFlashdata('success', $message);
+
+        return redirect()->to('/admin/products');
     }
 
     /* ── Categories ──────────────────────────────────────────── */
@@ -231,10 +330,18 @@ class AdminController extends Controller
 
         $counts = $this->categoryModel()->productCounts();
 
+        $categories = \Config\Database::connect()->query("
+            SELECT c.*, d.name AS division_name
+            FROM categories c
+            LEFT JOIN divisions d ON d.id = c.division_id
+            ORDER BY c.sort_order ASC, c.name ASC
+        ")->getResultArray();
+
         return view('admin/categories', [
-            'categories'    => $this->categoryModel()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->findAll(),
-            'productCounts' => $counts,
-            'errors'        => session()->getFlashdata('errors') ?? [],
+            'categories'      => $categories,
+            'productCounts'   => $counts,
+            'divisionOptions' => $this->divisionModel()->active()->findAll(),
+            'errors'          => session()->getFlashdata('errors') ?? [],
         ]);
     }
 
@@ -453,13 +560,16 @@ class AdminController extends Controller
             return redirect()->to('/admin/categories')->with('errors', ['A category with this name already exists.']);
         }
 
+        $divisionId = (int) $this->request->getPost('division_id');
+
         $slug = $this->categoryModel()->uniqueSlug(url_title($name, '-', true));
         $this->categoryModel()->insert([
-            'name'       => $name,
-            'slug'       => $slug,
-            'is_active'  => 1,
-            'sort_order' => (int) ($this->request->getPost('sort_order') ?: 0),
-            'description'=> trim((string) $this->request->getPost('description')),
+            'name'        => $name,
+            'slug'        => $slug,
+            'division_id' => $divisionId > 0 && $this->divisionModel()->find($divisionId) ? $divisionId : null,
+            'is_active'   => 1,
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'description' => trim((string) $this->request->getPost('description')),
         ]);
 
         $newId = (int) $this->categoryModel()->getInsertID();
@@ -495,9 +605,12 @@ class AdminController extends Controller
 
         $oldName = (string) ($cat['name'] ?? '');
 
+        $divisionId = (int) $this->request->getPost('division_id');
+
         $this->categoryModel()->update($id, [
             'name'        => $name,
             'slug'        => $slug,
+            'division_id' => $divisionId > 0 && $this->divisionModel()->find($divisionId) ? $divisionId : null,
             'description' => trim((string) $this->request->getPost('description')),
             'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
             'is_active'   => $this->request->getPost('is_active') === '0' ? 0 : 1,
@@ -541,6 +654,412 @@ class AdminController extends Controller
         return redirect()->to('/admin/categories');
     }
 
+    /* ── OEMs ─────────────────────────────────────────────────── */
+
+    public function oems()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        return view('admin/oems', [
+            'oems'          => $this->oemModel()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->findAll(),
+            'vehicleCounts' => $this->oemModel()->vehicleCounts(),
+            'errors'        => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createOem()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            return redirect()->to('/admin/oems')->with('errors', ['OEM name is required.']);
+        }
+
+        if ($this->oemModel()->findByName($name)) {
+            return redirect()->to('/admin/oems')->with('errors', ['An OEM with this name already exists.']);
+        }
+
+        $slug = $this->oemModel()->uniqueSlug(url_title($name, '-', true));
+        $this->oemModel()->insert([
+            'name'        => $name,
+            'slug'        => $slug,
+            'is_active'   => 1,
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'description' => trim((string) $this->request->getPost('description')),
+        ]);
+
+        session()->setFlashdata('success', 'OEM "' . $name . '" created.');
+
+        return redirect()->to('/admin/oems');
+    }
+
+    public function updateOem(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $oem = $this->oemModel()->find($id);
+
+        if (! $oem) {
+            return redirect()->to('/admin/oems')->with('errors', ['OEM not found.']);
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            return redirect()->to('/admin/oems')->with('errors', ['OEM name is required.']);
+        }
+
+        $slug = $this->oemModel()->uniqueSlug(url_title($name, '-', true), $id);
+
+        $this->oemModel()->update($id, [
+            'name'        => $name,
+            'slug'        => $slug,
+            'description' => trim((string) $this->request->getPost('description')),
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active'   => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ]);
+
+        session()->setFlashdata('success', 'OEM updated.');
+
+        return redirect()->to('/admin/oems');
+    }
+
+    public function deleteOem(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $oem = $this->oemModel()->find($id);
+
+        if (! $oem) {
+            return redirect()->to('/admin/oems')->with('errors', ['OEM not found.']);
+        }
+
+        // Detach vehicles rather than blocking deletion
+        $this->vehicleModel()->where('oem_id', $id)->set(['oem_id' => null])->update();
+
+        $this->oemModel()->delete($id);
+        session()->setFlashdata('success', 'OEM deleted. Vehicles using it have been detached.');
+
+        return redirect()->to('/admin/oems');
+    }
+
+    /* ── Divisions ────────────────────────────────────────────── */
+
+    public function divisions()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        return view('admin/divisions', [
+            'divisions'      => $this->divisionModel()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->findAll(),
+            'categoryCounts' => $this->divisionModel()->categoryCounts(),
+            'errors'         => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createDivision()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            return redirect()->to('/admin/divisions')->with('errors', ['Division name is required.']);
+        }
+
+        if ($this->divisionModel()->findByName($name)) {
+            return redirect()->to('/admin/divisions')->with('errors', ['A division with this name already exists.']);
+        }
+
+        $slug = $this->divisionModel()->uniqueSlug(url_title($name, '-', true));
+        $this->divisionModel()->insert([
+            'name'        => $name,
+            'slug'        => $slug,
+            'is_active'   => 1,
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'description' => trim((string) $this->request->getPost('description')),
+        ]);
+
+        session()->setFlashdata('success', 'Division "' . $name . '" created.');
+
+        return redirect()->to('/admin/divisions');
+    }
+
+    public function updateDivision(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $division = $this->divisionModel()->find($id);
+
+        if (! $division) {
+            return redirect()->to('/admin/divisions')->with('errors', ['Division not found.']);
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            return redirect()->to('/admin/divisions')->with('errors', ['Division name is required.']);
+        }
+
+        $slug = $this->divisionModel()->uniqueSlug(url_title($name, '-', true), $id);
+
+        $this->divisionModel()->update($id, [
+            'name'        => $name,
+            'slug'        => $slug,
+            'description' => trim((string) $this->request->getPost('description')),
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active'   => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ]);
+
+        session()->setFlashdata('success', 'Division updated.');
+
+        return redirect()->to('/admin/divisions');
+    }
+
+    public function deleteDivision(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $division = $this->divisionModel()->find($id);
+
+        if (! $division) {
+            return redirect()->to('/admin/divisions')->with('errors', ['Division not found.']);
+        }
+
+        // Detach categories rather than blocking deletion
+        $this->categoryModel()->where('division_id', $id)->set(['division_id' => null])->update();
+
+        $this->divisionModel()->delete($id);
+        session()->setFlashdata('success', 'Division deleted. Categories using it have been detached.');
+
+        return redirect()->to('/admin/divisions');
+    }
+
+    /* ── Labels ───────────────────────────────────────────────── */
+
+    public function labels()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        return view('admin/labels', [
+            'labels'        => $this->labelModel()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->findAll(),
+            'productCounts' => $this->labelModel()->productCounts(),
+            'errors'        => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createLabel()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            return redirect()->to('/admin/labels')->with('errors', ['Label name is required.']);
+        }
+
+        if ($this->labelModel()->findByName($name)) {
+            return redirect()->to('/admin/labels')->with('errors', ['A label with this name already exists.']);
+        }
+
+        $slug = $this->labelModel()->uniqueSlug(url_title($name, '-', true));
+        $this->labelModel()->insert([
+            'name'        => $name,
+            'slug'        => $slug,
+            'is_active'   => 1,
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'description' => trim((string) $this->request->getPost('description')),
+        ]);
+
+        session()->setFlashdata('success', 'Label "' . $name . '" created.');
+
+        return redirect()->to('/admin/labels');
+    }
+
+    public function updateLabel(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $label = $this->labelModel()->find($id);
+
+        if (! $label) {
+            return redirect()->to('/admin/labels')->with('errors', ['Label not found.']);
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+
+        if ($name === '') {
+            return redirect()->to('/admin/labels')->with('errors', ['Label name is required.']);
+        }
+
+        $slug = $this->labelModel()->uniqueSlug(url_title($name, '-', true), $id);
+
+        $this->labelModel()->update($id, [
+            'name'        => $name,
+            'slug'        => $slug,
+            'description' => trim((string) $this->request->getPost('description')),
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active'   => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ]);
+
+        session()->setFlashdata('success', 'Label updated.');
+
+        return redirect()->to('/admin/labels');
+    }
+
+    public function deleteLabel(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $label = $this->labelModel()->find($id);
+
+        if (! $label) {
+            return redirect()->to('/admin/labels')->with('errors', ['Label not found.']);
+        }
+
+        // Pivot rows in product_labels cascade-delete via FK — no manual detach needed.
+        $this->labelModel()->delete($id);
+        session()->setFlashdata('success', 'Label deleted.');
+
+        return redirect()->to('/admin/labels');
+    }
+
+    /* ── Vehicles ─────────────────────────────────────────────── */
+
+    public function vehicles()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $vehicles = \Config\Database::connect()->query("
+            SELECT v.*, o.name AS oem_name
+            FROM vehicles v
+            LEFT JOIN oems o ON o.id = v.oem_id
+            ORDER BY v.sort_order ASC, v.name ASC
+        ")->getResultArray();
+
+        return view('admin/vehicles', [
+            'vehicles'      => $vehicles,
+            'productCounts' => $this->vehicleModel()->productCounts(),
+            'oemOptions'    => $this->oemModel()->active()->findAll(),
+            'errors'        => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    public function createVehicle()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $name  = trim((string) $this->request->getPost('name'));
+        $oemId = (int) $this->request->getPost('oem_id');
+
+        if ($name === '') {
+            return redirect()->to('/admin/vehicles')->with('errors', ['Vehicle name is required.']);
+        }
+
+        if ($oemId <= 0 || ! $this->oemModel()->find($oemId)) {
+            return redirect()->to('/admin/vehicles')->with('errors', ['Please select a valid parent OEM.']);
+        }
+
+        $slug = $this->vehicleModel()->uniqueSlug(url_title($name, '-', true));
+        $this->vehicleModel()->insert([
+            'name'        => $name,
+            'slug'        => $slug,
+            'oem_id'      => $oemId,
+            'description' => trim((string) $this->request->getPost('description')),
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active'   => 1,
+        ]);
+
+        session()->setFlashdata('success', 'Vehicle "' . $name . '" created.');
+
+        return redirect()->to('/admin/vehicles');
+    }
+
+    public function updateVehicle(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $vehicle = $this->vehicleModel()->find($id);
+        if (! $vehicle) {
+            return redirect()->to('/admin/vehicles')->with('errors', ['Vehicle not found.']);
+        }
+
+        $name  = trim((string) $this->request->getPost('name'));
+        $oemId = (int) $this->request->getPost('oem_id');
+
+        if ($name === '') {
+            return redirect()->to('/admin/vehicles')->with('errors', ['Vehicle name is required.']);
+        }
+
+        if ($oemId <= 0 || ! $this->oemModel()->find($oemId)) {
+            return redirect()->to('/admin/vehicles')->with('errors', ['Please select a valid parent OEM.']);
+        }
+
+        $slug = $this->vehicleModel()->uniqueSlug(url_title($name, '-', true), $id);
+
+        $this->vehicleModel()->update($id, [
+            'name'        => $name,
+            'slug'        => $slug,
+            'oem_id'      => $oemId,
+            'description' => trim((string) $this->request->getPost('description')),
+            'sort_order'  => (int) ($this->request->getPost('sort_order') ?: 0),
+            'is_active'   => $this->request->getPost('is_active') === '0' ? 0 : 1,
+        ]);
+
+        session()->setFlashdata('success', 'Vehicle updated.');
+
+        return redirect()->to('/admin/vehicles');
+    }
+
+    public function deleteVehicle(int $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $vehicle = $this->vehicleModel()->find($id);
+        if (! $vehicle) {
+            return redirect()->to('/admin/vehicles')->with('errors', ['Vehicle not found.']);
+        }
+
+        // Pivot rows in product_vehicles cascade-delete via FK — no manual detach needed.
+        $this->vehicleModel()->delete($id);
+        session()->setFlashdata('success', 'Vehicle deleted.');
+
+        return redirect()->to('/admin/vehicles');
+    }
+
     /* ── SKU suggestion (AJAX) ───────────────────────────────── */
 
     public function suggestSku()
@@ -571,9 +1090,13 @@ class AdminController extends Controller
         }
 
         return view('admin/product-form', [
-            'product'    => null,
-            'categories' => $this->loadCategories(),
-            'errors'     => session()->getFlashdata('errors') ?? [],
+            'product'            => null,
+            'categories'         => $this->loadCategories(),
+            'vehiclesByOem'      => $this->vehicleModel()->groupedByOem(),
+            'productVehicleIds'  => [],
+            'labels'             => $this->labelModel()->active()->findAll(),
+            'productLabelIds'    => [],
+            'errors'             => session()->getFlashdata('errors') ?? [],
         ]);
     }
 
@@ -589,7 +1112,9 @@ class AdminController extends Controller
             return redirect()->to('/admin/products/new')->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->products()->insert($payload);
+        $newId = $this->products()->insert($payload, true);
+        $this->productVehicleModel()->syncForProduct((int) $newId, (array) ($this->request->getPost('vehicle_ids') ?? []));
+        $this->productLabelModel()->syncForProduct((int) $newId, (array) ($this->request->getPost('label_ids') ?? []));
         session()->setFlashdata('success', 'Product created.');
 
         return redirect()->to('/admin/products');
@@ -621,9 +1146,13 @@ class AdminController extends Controller
         }
 
         return view('admin/product-form', [
-            'product'    => $product,
-            'categories' => $this->loadCategories(),
-            'errors'     => session()->getFlashdata('errors') ?? [],
+            'product'            => $product,
+            'categories'         => $this->loadCategories(),
+            'vehiclesByOem'      => $this->vehicleModel()->groupedByOem(),
+            'productVehicleIds'  => $this->productVehicleModel()->vehicleIdsForProduct($id),
+            'labels'             => $this->labelModel()->active()->findAll(),
+            'productLabelIds'    => $this->productLabelModel()->labelIdsForProduct($id),
+            'errors'             => session()->getFlashdata('errors') ?? [],
         ]);
     }
 
@@ -645,6 +1174,8 @@ class AdminController extends Controller
         }
 
         $this->products()->update($id, $payload);
+        $this->productVehicleModel()->syncForProduct($id, (array) ($this->request->getPost('vehicle_ids') ?? []));
+        $this->productLabelModel()->syncForProduct($id, (array) ($this->request->getPost('label_ids') ?? []));
         session()->setFlashdata('success', 'Product updated.');
 
         return redirect()->to('/admin/products');
@@ -734,6 +1265,7 @@ class AdminController extends Controller
             'name',
             'slug',
             'sku',
+            'part_number',
             'category',
             'short_description',
             'description',
@@ -741,6 +1273,31 @@ class AdminController extends Controller
             'price_label',
             'sort_order',
             'is_active',
+            'price',
+            'compare_at_price',
+            'currency',
+            'tax_rate',
+            'stock_quantity',
+            'stock_status',
+            'lead_time',
+            'min_order_qty',
+            'weight',
+            'dimensions',
+            'material',
+            'datasheet_url',
+            'specifications',
+            'is_featured',
+            'vehicles',
+            'labels',
+            'meta_title',
+            'meta_description',
+            'meta_keyword',
+            'focus_keyword',
+            'image_alt_text',
+            'canonical_url',
+            'og_image',
+            'structured_data_type',
+            'robots_meta',
         ];
 
         $sampleRows = [
@@ -748,6 +1305,7 @@ class AdminController extends Controller
                 'Hydraulic Pump Service Kit',
                 'hydraulic-pump-service-kit',
                 'BSAS-HP-001',
+                'HP-KIT-001',
                 'Service Kits',
                 'Seal, bearing, and wear-part kit for high-duty hydraulic pump overhauls.',
                 'Prepared for mining and drilling duty cycles, this kit consolidates essential overhaul components.',
@@ -755,11 +1313,37 @@ class AdminController extends Controller
                 'Quote on request',
                 '10',
                 '1',
+                '18500.00',
+                '21000.00',
+                'INR',
+                '18',
+                '25',
+                'in_stock',
+                '3-5 business days',
+                '1',
+                '4.2 kg',
+                '35 x 20 x 15 cm',
+                'Steel / Nitrile seals',
+                'https://example.com/datasheets/hydraulic-pump-service-kit.pdf',
+                '{"Seal material":"Nitrile","Bearing type":"Roller","Duty rating":"Heavy"}',
+                '1',
+                'MPR100, HP-500 Series Pump',
+                'Best Seller, Fast Moving',
+                'Hydraulic Pump Service Kit | BSAS',
+                'Shop the hydraulic pump service kit — seals, bearings, and wear parts for high-duty overhauls.',
+                'hydraulic pump kit, seal kit, bearing kit',
+                'hydraulic pump service kit',
+                'Hydraulic pump service kit product photo',
+                'https://example.com/products/hydraulic-pump-service-kit',
+                'https://cdn.example.com/products/hydraulic-pump-service-kit.webp',
+                'Product',
+                'index, follow',
             ],
             [
                 'Feed Beam Wear Pad Set',
                 'feed-beam-wear-pad-set',
                 'BSAS-FB-014',
+                'FB-PAD-014',
                 'Spare Parts',
                 'Precision-machined wear pads for drilling rig feed beam stability and service life.',
                 'Designed to reduce play and improve feed guidance in demanding drill rig operations.',
@@ -767,6 +1351,31 @@ class AdminController extends Controller
                 'Fast dispatch',
                 '20',
                 '1',
+                '6200.00',
+                '',
+                'INR',
+                '18',
+                '60',
+                'in_stock',
+                '1-2 business days',
+                '2',
+                '1.1 kg',
+                '18 x 10 x 4 cm',
+                'Hardened steel',
+                '',
+                '{"Pad thickness":"12mm","Finish":"Hardened"}',
+                '0',
+                '',
+                '',
+                'Feed Beam Wear Pad Set | BSAS',
+                'Precision-machined feed beam wear pads — reduce play, improve guidance, extend rig life.',
+                'feed beam wear pad, drill rig parts',
+                'feed beam wear pad set',
+                'Feed beam wear pad set product photo',
+                'https://example.com/products/feed-beam-wear-pad-set',
+                'https://cdn.example.com/products/feed-beam-wear-pad-set.webp',
+                'Product',
+                'index, follow',
             ],
         ];
 
@@ -792,10 +1401,15 @@ class AdminController extends Controller
         }
 
         $products = $this->products()->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->findAll();
+        $productIds = array_column($products, 'id');
+        $vehicleNamesByProduct = $this->namesByProduct('product_vehicles', 'vehicle_id', 'vehicles', $productIds);
+        $labelNamesByProduct   = $this->namesByProduct('product_labels', 'label_id', 'labels', $productIds);
+
         $headers = [
             'name',
             'slug',
             'sku',
+            'part_number',
             'category',
             'short_description',
             'description',
@@ -803,6 +1417,31 @@ class AdminController extends Controller
             'price_label',
             'sort_order',
             'is_active',
+            'price',
+            'compare_at_price',
+            'currency',
+            'tax_rate',
+            'stock_quantity',
+            'stock_status',
+            'lead_time',
+            'min_order_qty',
+            'weight',
+            'dimensions',
+            'material',
+            'datasheet_url',
+            'specifications',
+            'is_featured',
+            'vehicles',
+            'labels',
+            'meta_title',
+            'meta_description',
+            'meta_keyword',
+            'focus_keyword',
+            'image_alt_text',
+            'canonical_url',
+            'og_image',
+            'structured_data_type',
+            'robots_meta',
         ];
 
         $handle = fopen('php://temp', 'w+');
@@ -812,6 +1451,7 @@ class AdminController extends Controller
                 $product['name'],
                 $product['slug'],
                 $product['sku'],
+                $product['part_number'] ?? '',
                 $product['category'],
                 $product['short_description'],
                 $product['description'],
@@ -819,6 +1459,31 @@ class AdminController extends Controller
                 $product['price_label'],
                 (string) $product['sort_order'],
                 (string) $product['is_active'],
+                $product['price'] ?? '',
+                $product['compare_at_price'] ?? '',
+                $product['currency'] ?? '',
+                $product['tax_rate'] ?? '',
+                $product['stock_quantity'] ?? '',
+                $product['stock_status'] ?? '',
+                $product['lead_time'] ?? '',
+                $product['min_order_qty'] ?? '',
+                $product['weight'] ?? '',
+                $product['dimensions'] ?? '',
+                $product['material'] ?? '',
+                $product['datasheet_url'] ?? '',
+                $product['specifications'] ?? '',
+                $product['is_featured'] ?? '',
+                $vehicleNamesByProduct[$product['id']] ?? '',
+                $labelNamesByProduct[$product['id']] ?? '',
+                $product['meta_title'] ?? '',
+                $product['meta_description'] ?? '',
+                $product['meta_keyword'] ?? '',
+                $product['focus_keyword'] ?? '',
+                $product['image_alt_text'] ?? '',
+                $product['canonical_url'] ?? '',
+                $product['og_image'] ?? '',
+                $product['structured_data_type'] ?? '',
+                $product['robots_meta'] ?? '',
             ]);
         }
         rewind($handle);
@@ -836,6 +1501,7 @@ class AdminController extends Controller
         $rules = [
             'name'              => 'required|min_length[3]',
             'sku'               => 'permit_empty|max_length[80]',
+            'part_number'       => 'permit_empty|max_length[100]',
             'short_description' => 'permit_empty|max_length[2000]',
             'description'       => 'permit_empty',
             'image_url'         => 'permit_empty|max_length[255]',
@@ -848,9 +1514,22 @@ class AdminController extends Controller
             'weight'            => 'permit_empty|max_length[60]',
             'dimensions'        => 'permit_empty|max_length[100]',
             'material'          => 'permit_empty|max_length[100]',
-            'compatibility'     => 'permit_empty',
             'datasheet_url'     => 'permit_empty|max_length[500]',
             'is_featured'       => 'permit_empty|in_list[0,1]',
+            'price'             => 'permit_empty|decimal',
+            'compare_at_price'  => 'permit_empty|decimal',
+            'currency'          => 'permit_empty|max_length[3]',
+            'tax_rate'          => 'permit_empty|decimal',
+            'stock_quantity'    => 'permit_empty|integer',
+            'meta_title'          => 'permit_empty|max_length[160]',
+            'meta_description'    => 'permit_empty|max_length[300]',
+            'meta_keyword'        => 'permit_empty|max_length[255]',
+            'focus_keyword'       => 'permit_empty|max_length[160]',
+            'image_alt_text'      => 'permit_empty|max_length[160]',
+            'canonical_url'       => 'permit_empty|max_length[500]',
+            'og_image'            => 'permit_empty|max_length[255]',
+            'structured_data_type' => 'permit_empty|max_length[60]',
+            'robots_meta'         => 'permit_empty|max_length[60]',
         ];
 
         if (! $this->validateData($this->request->getPost(), $rules)) {
@@ -905,6 +1584,7 @@ class AdminController extends Controller
             'name'              => $name,
             'slug'              => $slug,
             'sku'               => $sku,
+            'part_number'       => trim((string) $this->request->getPost('part_number')),
             'category'          => $categoryName,
             'short_description' => trim((string) $this->request->getPost('short_description')),
             'description'       => trim((string) $this->request->getPost('description')),
@@ -935,10 +1615,23 @@ class AdminController extends Controller
             'weight'         => trim((string) $this->request->getPost('weight')),
             'dimensions'     => trim((string) $this->request->getPost('dimensions')),
             'material'       => trim((string) $this->request->getPost('material')),
-            'compatibility'  => trim((string) $this->request->getPost('compatibility')),
             'datasheet_url'  => trim((string) $this->request->getPost('datasheet_url')),
             'specifications' => $specsJson,
             'is_featured'    => $this->request->getPost('is_featured') === '1' ? 1 : 0,
+            'price'          => (string) ($this->request->getPost('price') ?: '0'),
+            'compare_at_price' => trim((string) $this->request->getPost('compare_at_price')) !== '' ? (string) $this->request->getPost('compare_at_price') : null,
+            'currency'       => strtoupper(trim((string) $this->request->getPost('currency')) ?: 'INR'),
+            'tax_rate'       => (string) ($this->request->getPost('tax_rate') ?: '0'),
+            'stock_quantity' => (int) ($this->request->getPost('stock_quantity') ?: 0),
+            'meta_title'           => trim((string) $this->request->getPost('meta_title')) ?: null,
+            'meta_description'     => trim((string) $this->request->getPost('meta_description')) ?: null,
+            'meta_keyword'         => trim((string) $this->request->getPost('meta_keyword')) ?: null,
+            'focus_keyword'        => trim((string) $this->request->getPost('focus_keyword')) ?: null,
+            'image_alt_text'       => trim((string) $this->request->getPost('image_alt_text')) ?: null,
+            'canonical_url'        => trim((string) $this->request->getPost('canonical_url')) ?: null,
+            'og_image'             => trim((string) $this->request->getPost('og_image')) ?: null,
+            'structured_data_type' => trim((string) $this->request->getPost('structured_data_type')) ?: 'Product',
+            'robots_meta'          => trim((string) $this->request->getPost('robots_meta')) ?: 'index, follow',
         ];
         foreach ($advanced as $col => $value) {
             if ($this->columnExists('products', $col)) {
@@ -957,6 +1650,34 @@ class AdminController extends Controller
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    /**
+     * Comma-joined names (e.g. linked vehicles or labels) per product ID, via a pivot table.
+     * Returns ['product_id' => 'Name One, Name Two', ...]; product IDs with no links are omitted.
+     * $pivotTable/$pivotIdColumn/$namesTable are only ever called with hardcoded literals below.
+     */
+    private function namesByProduct(string $pivotTable, string $pivotIdColumn, string $namesTable, array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        $ids  = implode(',', array_map('intval', $productIds));
+        $rows = \Config\Database::connect()->query("
+            SELECT piv.product_id, n.name
+            FROM `$pivotTable` piv
+            INNER JOIN `$namesTable` n ON n.id = piv.`$pivotIdColumn`
+            WHERE piv.product_id IN ($ids)
+            ORDER BY n.name ASC
+        ")->getResultArray();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[(int) $row['product_id']][] = $row['name'];
+        }
+
+        return array_map(static fn(array $names): string => implode(', ', $names), $grouped);
     }
 
     /**
@@ -1148,6 +1869,36 @@ class AdminController extends Controller
         return new CategoryModel();
     }
 
+    private function vehicleModel(): VehicleModel
+    {
+        return new VehicleModel();
+    }
+
+    private function productVehicleModel(): ProductVehicleModel
+    {
+        return new ProductVehicleModel();
+    }
+
+    private function oemModel(): OemModel
+    {
+        return new OemModel();
+    }
+
+    private function divisionModel(): DivisionModel
+    {
+        return new DivisionModel();
+    }
+
+    private function labelModel(): LabelModel
+    {
+        return new LabelModel();
+    }
+
+    private function productLabelModel(): ProductLabelModel
+    {
+        return new ProductLabelModel();
+    }
+
     private function quoteRequests(): QuoteRequestModel
     {
         return new QuoteRequestModel();
@@ -1189,6 +1940,20 @@ class AdminController extends Controller
             'SELECT COUNT(*) AS cnt FROM brochure_leads'
         )->getRowArray()['cnt'] ?? 0);
 
+        $ordersTotal = 0;
+        $ordersPending = 0;
+        try {
+            $oRow = $db->query(
+                "SELECT COUNT(*) AS total,
+                        SUM(CASE WHEN status IN ('pending','confirmed','processing') THEN 1 ELSE 0 END) AS pending
+                 FROM orders"
+            )->getRowArray();
+            $ordersTotal   = (int) ($oRow['total'] ?? 0);
+            $ordersPending = (int) ($oRow['pending'] ?? 0);
+        } catch (\Throwable $e) {
+            // orders table not yet migrated
+        }
+
         return [
             'totalProducts'  => (int) ($pRow['total']  ?? 0),
             'activeProducts' => (int) ($pRow['active'] ?? 0),
@@ -1196,6 +1961,8 @@ class AdminController extends Controller
             'quoteRequests'  => (int) ($qRow['total']  ?? 0),
             'cartQuotes'     => (int) ($qRow['cart']   ?? 0),
             'brochureLeads'  => $brochureCount,
+            'ordersTotal'    => $ordersTotal,
+            'ordersPending'  => $ordersPending,
         ];
     }
 
@@ -1474,16 +2241,25 @@ class AdminController extends Controller
 
             $payload = $this->sanitizeImportedPayload($data);
             $existing = $this->findExistingProductForImport($payload);
+            $links    = $this->resolveImportVehicleAndLabelIds($data);
 
             if ($existing) {
                 $payload['slug'] = $this->resolveImportSlug($payload['slug'], (int) $existing['id'], $payload['name']);
                 $this->products()->update((int) $existing['id'], $payload);
+                if ($links['vehicle_ids'] !== null) {
+                    $this->productVehicleModel()->syncForProduct((int) $existing['id'], $links['vehicle_ids']);
+                }
+                if ($links['label_ids'] !== null) {
+                    $this->productLabelModel()->syncForProduct((int) $existing['id'], $links['label_ids']);
+                }
                 $updated++;
                 continue;
             }
 
             $payload['slug'] = $this->resolveImportSlug($payload['slug'], null, $payload['name']);
-            $this->products()->insert($payload);
+            $newId = $this->products()->insert($payload);
+            $this->productVehicleModel()->syncForProduct((int) $newId, $links['vehicle_ids'] ?? []);
+            $this->productLabelModel()->syncForProduct((int) $newId, $links['label_ids'] ?? []);
             $created++;
         }
 
@@ -1506,6 +2282,59 @@ class AdminController extends Controller
         return $mapped;
     }
 
+    /**
+     * Resolve the CSV `vehicles`/`labels` columns (comma/semicolon-separated names) to ID
+     * lists for pivot syncing. Vehicles only match existing records (a Vehicle needs a
+     * parent OEM, so none are created here); Labels are matched-or-created on the fly,
+     * mirroring how `category` is auto-created during import.
+     *
+     * Returns null for a key when the CSV had no such column at all, so the caller can
+     * leave existing links untouched instead of wiping them on a CSV that predates these
+     * columns (same guard rationale as the SEO/pricing fields elsewhere in this class).
+     */
+    private function resolveImportVehicleAndLabelIds(array $data): array
+    {
+        $vehicleIds = null;
+        if (array_key_exists('vehicles', $data)) {
+            $vehicleIds = [];
+            foreach ($this->splitImportNames($data['vehicles']) as $name) {
+                $vehicle = $this->vehicleModel()->findByName($name);
+                if ($vehicle) {
+                    $vehicleIds[] = (int) $vehicle['id'];
+                }
+            }
+        }
+
+        $labelIds = null;
+        if (array_key_exists('labels', $data)) {
+            $labelIds = [];
+            foreach ($this->splitImportNames($data['labels']) as $name) {
+                $label = $this->labelModel()->findOrCreate($name);
+                if ($label) {
+                    $labelIds[] = (int) $label['id'];
+                }
+            }
+        }
+
+        return ['vehicle_ids' => $vehicleIds, 'label_ids' => $labelIds];
+    }
+
+    /** Splits a comma/semicolon-separated CSV cell into trimmed, de-duplicated names. */
+    private function splitImportNames(string $raw): array
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return [];
+        }
+
+        $parts = preg_split('/[,;]+/', $raw) ?: [];
+
+        return array_values(array_unique(array_filter(
+            array_map('trim', $parts),
+            static fn(string $p): bool => $p !== ''
+        )));
+    }
+
     private function sanitizeImportedPayload(array $data): array
     {
         $categoryName = trim((string) ($data['category'] ?? ''));
@@ -1516,10 +2345,11 @@ class AdminController extends Controller
             $categoryId = $cat ? (int) $cat['id'] : null;
         }
 
-        return [
+        $payload = [
             'name'              => $data['name'] ?? '',
             'slug'              => trim((string) ($data['slug'] ?? '')),
             'sku'               => trim((string) ($data['sku'] ?? '')),
+            'part_number'       => trim((string) ($data['part_number'] ?? '')),
             'category'          => $categoryName,
             'category_id'       => $categoryId,
             'short_description' => trim((string) ($data['short_description'] ?? '')),
@@ -1529,6 +2359,57 @@ class AdminController extends Controller
             'sort_order'        => is_numeric($data['sort_order'] ?? null) ? (int) $data['sort_order'] : 0,
             'is_active'         => in_array((string) ($data['is_active'] ?? '1'), ['0', 'false', 'FALSE'], true) ? 0 : 1,
         ];
+
+        // Pricing / stock / technical fields — guarded so an unmigrated environment doesn't hard-fail on import.
+        $numericFields = ['price', 'compare_at_price', 'tax_rate'];
+        foreach ($numericFields as $col) {
+            if ($this->columnExists('products', $col)) {
+                $raw = trim((string) ($data[$col] ?? ''));
+                $payload[$col] = $raw !== '' && is_numeric($raw) ? $raw : ($col === 'compare_at_price' ? null : '0');
+            }
+        }
+        if ($this->columnExists('products', 'stock_quantity')) {
+            $payload['stock_quantity'] = is_numeric($data['stock_quantity'] ?? null) ? (int) $data['stock_quantity'] : 0;
+        }
+        if ($this->columnExists('products', 'min_order_qty')) {
+            $payload['min_order_qty'] = max(1, is_numeric($data['min_order_qty'] ?? null) ? (int) $data['min_order_qty'] : 1);
+        }
+        if ($this->columnExists('products', 'currency')) {
+            $currency = strtoupper(trim((string) ($data['currency'] ?? '')));
+            $payload['currency'] = $currency !== '' ? $currency : 'INR';
+        }
+        if ($this->columnExists('products', 'stock_status')) {
+            $status = trim((string) ($data['stock_status'] ?? ''));
+            $payload['stock_status'] = in_array($status, ['in_stock', 'made_to_order', 'out_of_stock'], true) ? $status : 'in_stock';
+        }
+        if ($this->columnExists('products', 'is_featured')) {
+            $payload['is_featured'] = in_array((string) ($data['is_featured'] ?? '0'), ['1', 'true', 'TRUE'], true) ? 1 : 0;
+        }
+        if ($this->columnExists('products', 'specifications')) {
+            $specsRaw = trim((string) ($data['specifications'] ?? ''));
+            $decoded  = $specsRaw !== '' ? json_decode($specsRaw, true) : null;
+            $payload['specifications'] = is_array($decoded) && count($decoded) > 0 ? json_encode($decoded) : null;
+        }
+
+        $textFields = ['lead_time', 'weight', 'dimensions', 'material', 'datasheet_url'];
+        foreach ($textFields as $col) {
+            if ($this->columnExists('products', $col)) {
+                $payload[$col] = trim((string) ($data[$col] ?? ''));
+            }
+        }
+
+        // SEO fields — guarded so an unmigrated environment doesn't hard-fail on import.
+        $seoFields = [
+            'meta_title', 'meta_description', 'meta_keyword', 'focus_keyword',
+            'image_alt_text', 'canonical_url', 'og_image', 'structured_data_type', 'robots_meta',
+        ];
+        foreach ($seoFields as $col) {
+            if ($this->columnExists('products', $col)) {
+                $payload[$col] = trim((string) ($data[$col] ?? '')) ?: null;
+            }
+        }
+
+        return $payload;
     }
 
     private function findExistingProductForImport(array $payload): ?array
@@ -1569,17 +2450,4 @@ class AdminController extends Controller
         return true;
     }
 
-    private function isAuthenticated(): bool
-    {
-        return session()->get('is_admin_authenticated') === true;
-    }
-
-    private function guard()
-    {
-        if ($this->isAuthenticated()) {
-            return null;
-        }
-
-        return redirect()->to('/admin/login')->with('message', 'Please sign in to access the backend.');
-    }
 }

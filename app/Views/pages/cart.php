@@ -61,6 +61,12 @@
                                             &nbsp;&middot;&nbsp; SKU <?= esc($item['product']['sku']) ?>
                                         <?php endif; ?>
                                     </span>
+                                    <?php if ((float) ($item['product']['price'] ?? 0) > 0): ?>
+                                        <span class="sp-cart-item-meta" style="display:block;margin-top:4px;font-weight:700;color:#111">
+                                            &#8377; <?= esc(number_format((float) $item['product']['price'], 2)) ?> &times; <?= esc((string) $item['quantity']) ?>
+                                            = &#8377; <?= esc(number_format((float) $item['product']['price'] * $item['quantity'], 2)) ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="sp-cart-item-actions">
                                     <div class="sp-cart-qty">
@@ -97,6 +103,30 @@
 
         <!-- Right: Quote Form (sticky) -->
         <div class="sp-quote-panel">
+            <?php
+            $orderableItems = array_filter($cartItems, static fn(array $item): bool => (float) ($item['product']['price'] ?? 0) > 0);
+            $orderSubtotal  = 0.0;
+            $orderTax       = 0.0;
+            foreach ($orderableItems as $orderItem) {
+                $lineTotal      = (float) $orderItem['product']['price'] * $orderItem['quantity'];
+                $orderSubtotal += $lineTotal;
+                $orderTax      += $lineTotal * ((float) ($orderItem['product']['tax_rate'] ?? 0) / 100);
+            }
+            $orderGrandTotal = $orderSubtotal + $orderTax;
+            ?>
+            <?php if ($orderableItems !== []): ?>
+                <div class="sp-quote-card" style="margin-bottom:16px">
+                    <h3>Ready to buy now?</h3>
+                    <p><?= count($orderableItems) ?> item<?= count($orderableItems) !== 1 ? 's' : '' ?> in your basket have a fixed price and can be purchased directly.</p>
+                    <dl class="sp-spec-table" style="margin:12px 0">
+                        <div class="sp-spec-row"><dt>Subtotal</dt><dd>&#8377; <?= esc(number_format($orderSubtotal, 2)) ?></dd></div>
+                        <div class="sp-spec-row"><dt>Tax</dt><dd>&#8377; <?= esc(number_format($orderTax, 2)) ?></dd></div>
+                        <div class="sp-spec-row"><dt><strong>Total</strong></dt><dd><strong>&#8377; <?= esc(number_format($orderGrandTotal, 2)) ?></strong></dd></div>
+                    </dl>
+                    <a href="/checkout/address" class="btn" style="width:100%;justify-content:center">Proceed to Checkout</a>
+                </div>
+            <?php endif; ?>
+
             <div class="sp-quote-card">
                 <h3>Request Cart Quote</h3>
                 <p>Submit once &mdash; the BSAS team will respond with pricing, availability, and dispatch details for all items.</p>

@@ -9,14 +9,14 @@
     <!-- SEO -->
     <meta name="description" content="<?= esc($metaDescription ?? 'BSAS manufactures drill rigs and supplies rock drill spares, hydraulic assemblies, and refurbishment services for mining and construction. Based in Raniganj, India.') ?>">
     <meta name="robots" content="<?= esc($metaRobots ?? 'index, follow') ?>">
-    <link rel="canonical" href="<?= site_url(uri_string()) ?>">
+    <link rel="canonical" href="<?= esc($canonicalUrl ?? site_url(uri_string())) ?>">
 
     <!-- Open Graph -->
     <meta property="og:type" content="<?= esc($ogType ?? 'website') ?>">
     <meta property="og:site_name" content="BSAS – Bharat Spares &amp; Services">
     <meta property="og:title" content="<?= esc($metaTitle ?? ($title . ' | ' . $brand)) ?>">
     <meta property="og:description" content="<?= esc($metaDescription ?? 'BSAS manufactures drill rigs and supplies rock drill spares, hydraulic assemblies, and refurbishment services for mining and construction. Based in Raniganj, India.') ?>">
-    <meta property="og:url" content="<?= site_url(uri_string()) ?>">
+    <meta property="og:url" content="<?= esc($canonicalUrl ?? site_url(uri_string())) ?>">
     <meta property="og:image" content="<?= esc($ogImage ?? base_url('assets/images/photo1.webp')) ?>">
     <meta property="og:locale" content="en_IN">
 
@@ -93,14 +93,28 @@
         </button>
 
         <nav id="shop-nav" class="shop-nav">
-            <a href="/e-shop" class="<?= $currentPath === 'e-shop' || str_starts_with($currentPath, 'e-shop/product/') ? 'active' : '' ?>">Catalogue</a>
-            <a href="/cart" class="<?= $currentPath === 'cart' ? 'active' : '' ?>">Quote Basket<?= isset($cartCount) && $cartCount > 0 ? ' (' . esc((string) $cartCount) . ')' : '' ?></a>
-            <a href="/support" class="<?= $currentPath === 'support' ? 'active' : '' ?>">Support</a>
-            <?php if (session()->get('is_admin_authenticated') === true): ?>
-                <a href="/admin">Backend</a>
-                <a href="/admin/logout">Sign Out</a>
-            <?php endif; ?>
-            <a href="/">Main Site</a>
+            <div class="shop-nav-group shop-nav-group--browse">
+                <a href="/e-shop" class="<?= $currentPath === 'e-shop' || str_starts_with($currentPath, 'e-shop/product/') ? 'active' : '' ?>">Catalogue</a>
+                <a href="/cart" class="<?= $currentPath === 'cart' ? 'active' : '' ?>">Quote Basket<?= isset($cartCount) && $cartCount > 0 ? ' (' . esc((string) $cartCount) . ')' : '' ?></a>
+                <a href="/support" class="<?= $currentPath === 'support' ? 'active' : '' ?>">Support</a>
+            </div>
+
+            <span class="shop-nav-divider" aria-hidden="true"></span>
+
+            <div class="shop-nav-group shop-nav-group--account">
+                <?php if (session()->get('is_customer_authenticated') === true): ?>
+                    <a href="/account" class="shop-nav-cta <?= str_starts_with($currentPath, 'account') ? 'active' : '' ?>">My Account</a>
+                    <a href="/logout" class="shop-nav-ghost">Sign Out</a>
+                <?php else: ?>
+                    <a href="/login" class="shop-nav-cta <?= in_array($currentPath, ['login', 'register'], true) ? 'active' : '' ?>">Sign In</a>
+                <?php endif; ?>
+                <?php if (session()->get('is_admin_authenticated') === true): ?>
+                    <a href="/admin" class="shop-nav-cta">Backend</a>
+                    <a href="/admin/logout" class="shop-nav-ghost">Sign Out</a>
+                <?php endif; ?>
+            </div>
+
+            <a href="/" class="shop-nav-ghost">&larr; Main Site</a>
         </nav>
         <button class="nav-backdrop nav-backdrop-shop" type="button" aria-label="Close e-shop menu" hidden></button>
     </header>

@@ -65,6 +65,7 @@ $mastheadText  = 'All category names are bound here. Products pick from this lis
                         <tr>
                             <th>Name</th>
                             <th>Slug</th>
+                            <th>Division</th>
                             <th>Products</th>
                             <th>Sort</th>
                             <th>Status</th>
@@ -79,6 +80,13 @@ $mastheadText  = 'All category names are bound here. Products pick from this lis
                             </td>
                             <td>
                                 <span style="font-size:12px;color:var(--adm-faint);font-family:monospace"><?= esc($cat['slug']) ?></span>
+                            </td>
+                            <td>
+                                <?php if (! empty($cat['division_name'])): ?>
+                                    <span class="admin-inline-pill"><?= esc($cat['division_name']) ?></span>
+                                <?php else: ?>
+                                    <span style="font-size:12px;color:var(--adm-faint)">No division</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="admin-badge">
@@ -97,6 +105,7 @@ $mastheadText  = 'All category names are bound here. Products pick from this lis
                                             class="edit-cat-btn"
                                             data-id="<?= esc((string) $cat['id']) ?>"
                                             data-name="<?= esc($cat['name']) ?>"
+                                            data-division="<?= esc((string) ($cat['division_id'] ?? '')) ?>"
                                             data-sort="<?= esc((string) $cat['sort_order']) ?>"
                                             data-desc="<?= esc($cat['description'] ?? '') ?>"
                                             data-active="<?= esc((string) $cat['is_active']) ?>"
@@ -139,6 +148,15 @@ $mastheadText  = 'All category names are bound here. Products pick from this lis
                 <div class="form-group">
                     <label for="cat-name">Name <span style="color:#e53e3e">*</span></label>
                     <input id="cat-name" type="text" name="name" placeholder="e.g. Hydraulic Systems" required>
+                </div>
+                <div class="form-group">
+                    <label for="cat-division">Parent Division</label>
+                    <select id="cat-division" name="division_id">
+                        <option value="">&mdash; No division &mdash;</option>
+                        <?php foreach ($divisionOptions ?? [] as $division): ?>
+                            <option value="<?= esc((string) $division['id']) ?>"><?= esc($division['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="cat-desc">Description</label>
@@ -196,19 +214,21 @@ $mastheadText  = 'All category names are bound here. Products pick from this lis
     // Edit button fills the sidebar form
     document.querySelectorAll('.edit-cat-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            var id     = this.dataset.id;
-            var name   = this.dataset.name;
-            var sort   = this.dataset.sort;
-            var desc   = this.dataset.desc;
-            var active = this.dataset.active;
+            var id       = this.dataset.id;
+            var name     = this.dataset.name;
+            var division = this.dataset.division;
+            var sort     = this.dataset.sort;
+            var desc     = this.dataset.desc;
+            var active   = this.dataset.active;
 
             document.getElementById('cat-form-title').textContent = 'Edit Category';
             document.getElementById('cat-form-desc').textContent  = 'Updating the name here re-syncs all products on next save.';
-            document.getElementById('cat-name').value    = name;
-            document.getElementById('cat-desc').value    = desc;
-            document.getElementById('cat-sort').value    = sort;
-            document.getElementById('cat-active').value  = active;
-            document.getElementById('edit-id').value     = id;
+            document.getElementById('cat-name').value     = name;
+            document.getElementById('cat-division').value = division;
+            document.getElementById('cat-desc').value     = desc;
+            document.getElementById('cat-sort').value      = sort;
+            document.getElementById('cat-active').value    = active;
+            document.getElementById('edit-id').value       = id;
             document.getElementById('cat-submit-btn').textContent = '✓ Update Category';
             document.getElementById('cat-reset-btn').style.display = 'inline-flex';
 

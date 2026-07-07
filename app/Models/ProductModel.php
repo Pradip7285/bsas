@@ -33,6 +33,20 @@ class ProductModel extends Model
         'datasheet_url',
         'specifications',
         'is_featured',
+        'price',
+        'compare_at_price',
+        'currency',
+        'tax_rate',
+        'stock_quantity',
+        'meta_title',
+        'meta_description',
+        'meta_keyword',
+        'focus_keyword',
+        'image_alt_text',
+        'canonical_url',
+        'og_image',
+        'structured_data_type',
+        'robots_meta',
     ];
 
     /** Active products ordered for storefront display. */
@@ -41,6 +55,19 @@ class ProductModel extends Model
         return $this->where('is_active', 1)
             ->orderBy('sort_order', 'ASC')
             ->orderBy('name', 'ASC');
+    }
+
+    /**
+     * Atomically decrement stock for a checkout line item.
+     * Returns false (no rows affected) if stock is insufficient — the caller
+     * should roll back the whole order transaction in that case.
+     */
+    public function decrementStock(int $productId, int $qty): bool
+    {
+        $sql = 'UPDATE ' . $this->table . ' SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?';
+        $this->db->query($sql, [$qty, $productId, $qty]);
+
+        return $this->db->affectedRows() > 0;
     }
 
     /**

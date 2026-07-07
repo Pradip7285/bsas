@@ -39,7 +39,10 @@
         });
 
         window.addEventListener('resize', function () {
-            if (window.innerWidth > 768 && nav.classList.contains('open')) {
+            // Close the drawer once its own toggle button is no longer visible —
+            // this tracks whatever breakpoint each nav's CSS actually uses,
+            // rather than a single hardcoded width shared by every nav on the site.
+            if (getComputedStyle(toggle).display === 'none' && nav.classList.contains('open')) {
                 setExpanded(false);
             }
         });

@@ -7,9 +7,10 @@ if (! empty($product['specifications'])) {
     }
 }
 $hasSpecs        = count($specs) > 0;
-$hasCompatibility = ! empty($product['compatibility']);
+$hasCompatibility = ! empty($compatibleVehicles);
 $stockStatus     = $product['stock_status'] ?? 'in_stock';
 $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
+$isOrderable     = (float) ($product['price'] ?? 0) > 0;
 ?>
 <!-- ── Breadcrumbs ── -->
 <div class="sp-breadcrumbs">
@@ -31,7 +32,7 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
             <div class="sp-product-img sp-product-img-wrap">
                 <img class="sp-product-img-tag"
                      src="<?= esc($product['image_url'] ?: '/assets/images/sparePart.webp') ?>"
-                     alt="<?= esc($product['name']) ?>"
+                     alt="<?= esc($product['image_alt_text'] ?: $product['name']) ?>"
                      loading="lazy" decoding="async">
                 <?php if (! empty($product['is_featured'])): ?>
                     <span class="sp-featured-badge">&#9733; Featured</span>
@@ -57,7 +58,13 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                     <?php endif; ?>
                     <div class="sp-spec-row">
                         <dt>Commercial</dt>
-                        <dd><?= esc($product['price_label'] ?: 'Quote on request') ?></dd>
+                        <dd>
+                            <?php if ($isOrderable): ?>
+                                &#8377; <?= esc(number_format((float) $product['price'], 2)) ?>
+                            <?php else: ?>
+                                <?= esc($product['price_label'] ?: 'Quote on request') ?>
+                            <?php endif; ?>
+                        </dd>
                     </div>
                     <?php if (isset($product['stock_status'])): ?>
                     <div class="sp-spec-row">
@@ -150,7 +157,14 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                 <p class="sp-product-short-desc"><?= esc($product['short_description'] ?: $product['description']) ?></p>
                 <div class="sp-price-row">
                     <span class="sp-price-label">
-                        &#127991; <?= esc($product['price_label'] ?: 'Quote on request') ?>
+                        <?php if ($isOrderable): ?>
+                            &#8377; <?= esc(number_format((float) $product['price'], 2)) ?>
+                            <?php if (! empty($product['compare_at_price']) && (float) $product['compare_at_price'] > (float) $product['price']): ?>
+                                <s style="opacity:.55;font-weight:400;margin-left:6px">&#8377; <?= esc(number_format((float) $product['compare_at_price'], 2)) ?></s>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            &#127991; <?= esc($product['price_label'] ?: 'Quote on request') ?>
+                        <?php endif; ?>
                     </span>
                     <?php if (! empty($product['lead_time'])): ?>
                         <span class="sp-lead-tag">&#128340; <?= esc($product['lead_time']) ?></span>
@@ -197,6 +211,12 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                         <a href="/cart" class="btn btn-outline">View Basket</a>
                     </div>
                 </form>
+                <?php if ($isOrderable): ?>
+                    <p class="adm-field-hint" style="margin-top:12px">
+                        This product has a fixed price and can be purchased directly &mdash;
+                        add it to your basket, then choose <strong>Proceed to Checkout</strong> on the basket page.
+                    </p>
+                <?php endif; ?>
             </div>
 
             <!-- Content sections — always visible (no tabs) for SEO indexing -->
@@ -229,16 +249,16 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
                 </section>
                 <?php endif; ?>
 
-                <!-- Compatible Equipment -->
+                <!-- Compatible Vehicles -->
                 <?php if ($hasCompatibility): ?>
                 <section class="sp-content-block" id="compatibility">
-                    <h2 class="sp-section-heading">Compatible Equipment</h2>
-                    <p class="sp-compat-intro">This <?= esc(strtolower($product['category'])) ?> is validated for use with the following machines and systems:</p>
-                    <ul class="sp-compat-list">
-                        <?php foreach (array_filter(array_map('trim', explode("\n", $product['compatibility']))) as $compat): ?>
-                            <li><?= esc($compat) ?></li>
+                    <h2 class="sp-section-heading">Compatible Vehicles</h2>
+                    <p class="sp-compat-intro">This <?= esc(strtolower($product['category'])) ?> is validated for use with the following vehicle models:</p>
+                    <div class="sp-compat-tags">
+                        <?php foreach ($compatibleVehicles as $vehicle): ?>
+                            <a href="/e-shop?<?= esc(http_build_query(['vehicle' => [(int) $vehicle['id']]])) ?>" class="sp-compat-tag"><?= esc($vehicle['name']) ?></a>
                         <?php endforeach; ?>
-                    </ul>
+                    </div>
                 </section>
                 <?php endif; ?>
 
@@ -416,6 +436,15 @@ $moq             = max(1, (int) ($product['min_order_qty'] ?? 1));
 }
 .sp-desc-body { font-size:14px; line-height:1.75; color:#444; }
 .sp-compat-intro { font-size:13px; color:#6b7280; margin-bottom:10px; }
+.sp-compat-tags { display:flex; flex-wrap:wrap; gap:8px; }
+.sp-compat-tag {
+    display:inline-flex; align-items:center;
+    padding:7px 14px; border-radius:999px;
+    background:#fff8ed; border:1px solid #f5d898;
+    color:#8a5a10; font-size:12.5px; font-weight:700;
+    text-decoration:none; transition:background .15s, border-color .15s;
+}
+.sp-compat-tag:hover { background:#fdecc8; border-color:#e8bd6a; }
 .sp-compat-list, .sp-app-list, .sp-why-list {
     list-style:none; padding:0; margin:0 0 12px;
     display:flex; flex-direction:column; gap:8px;

@@ -21,6 +21,7 @@ class CategorySeeder extends Seeder
             ['name' => 'Structural & Frame Parts', 'slug' => 'structural-frame-parts',   'description' => 'Chassis brackets, mounting hardware, and structural weldments.',          'sort_order' => 80],
             ['name' => 'Filters & Consumables',    'slug' => 'filters-consumables',      'description' => 'Oil, air, hydraulic, and fuel filters plus lubricants.',                  'sort_order' => 90],
             ['name' => 'Seals & Gaskets',          'slug' => 'seals-gaskets',            'description' => 'O-rings, lip seals, shaft seals, and gasket sets.',                       'sort_order' => 100],
+            ['name' => 'Equipment',                'slug' => 'equipment',                'description' => 'Complete rigs and machines for exploration and surface support work.',     'sort_order' => 110],
         ];
 
         foreach ($categories as $cat) {
@@ -41,6 +42,6 @@ class CategorySeeder extends Seeder
             ]);
         }
 
-        echo "  ✓ 10 demo categories seeded.\n";
+        echo '  ✓ ' . count($categories) . " demo categories seeded.\n";
     }
 }

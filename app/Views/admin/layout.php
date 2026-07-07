@@ -69,6 +69,20 @@
                 </span>
             </a>
 
+            <a href="/admin/orders" class="<?= in_array(($activeNav ?? ''), ['orders', 'order-detail'], true) ? 'is-active' : '' ?>">
+                <span class="adm-nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                        <path d="M3 6h18"/>
+                        <path d="M16 10a4 4 0 01-8 0"/>
+                    </svg>
+                </span>
+                <span class="adm-nav-text">
+                    <span class="adm-nav-label">Orders</span>
+                    <span class="adm-nav-desc">Fulfilment &amp; tracking</span>
+                </span>
+            </a>
+
             <a href="/admin/leads" class="<?= ($activeNav ?? '') === 'leads' ? 'is-active' : '' ?>">
                 <span class="adm-nav-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -91,6 +105,62 @@
                 <span class="adm-nav-text">
                     <span class="adm-nav-label">Categories</span>
                     <span class="adm-nav-desc">Manage product groups</span>
+                </span>
+            </a>
+
+            <a href="/admin/vehicles" class="<?= ($activeNav ?? '') === 'vehicles' ? 'is-active' : '' ?>">
+                <span class="adm-nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 13l2-6a2 2 0 012-1h10a2 2 0 012 1l2 6"/>
+                        <path d="M3 13h18v4a1 1 0 01-1 1h-1a2 2 0 01-4 0H8a2 2 0 01-4 0H3a1 1 0 01-1-1v-3z"/>
+                        <circle cx="7.5" cy="18" r="1.5"/>
+                        <circle cx="16.5" cy="18" r="1.5"/>
+                    </svg>
+                </span>
+                <span class="adm-nav-text">
+                    <span class="adm-nav-label">Vehicles</span>
+                    <span class="adm-nav-desc">Compatibility filter models</span>
+                </span>
+            </a>
+
+            <a href="/admin/oems" class="<?= ($activeNav ?? '') === 'oems' ? 'is-active' : '' ?>">
+                <span class="adm-nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 21V8l9-5 9 5v13"/>
+                        <path d="M9 21v-6h6v6"/>
+                    </svg>
+                </span>
+                <span class="adm-nav-text">
+                    <span class="adm-nav-label">OEMs</span>
+                    <span class="adm-nav-desc">Equipment brands</span>
+                </span>
+            </a>
+
+            <a href="/admin/divisions" class="<?= ($activeNav ?? '') === 'divisions' ? 'is-active' : '' ?>">
+                <span class="adm-nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="8" height="8" rx="1"/>
+                        <rect x="13" y="3" width="8" height="8" rx="1"/>
+                        <rect x="3" y="13" width="8" height="8" rx="1"/>
+                        <rect x="13" y="13" width="8" height="8" rx="1"/>
+                    </svg>
+                </span>
+                <span class="adm-nav-text">
+                    <span class="adm-nav-label">Divisions</span>
+                    <span class="adm-nav-desc">Business groupings</span>
+                </span>
+            </a>
+
+            <a href="/admin/labels" class="<?= ($activeNav ?? '') === 'labels' ? 'is-active' : '' ?>">
+                <span class="adm-nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.59 13.41L11 3.83A2 2 0 009.58 3H4a1 1 0 00-1 1v5.58a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.83 0l4.59-4.59a2 2 0 000-2.83z"/>
+                        <circle cx="7.5" cy="7.5" r="1.5"/>
+                    </svg>
+                </span>
+                <span class="adm-nav-text">
+                    <span class="adm-nav-label">Labels</span>
+                    <span class="adm-nav-desc">Merchandising tags</span>
                 </span>
             </a>
 

@@ -100,6 +100,11 @@ if ($activityTimeline !== []) {
             <strong><?= esc((string) $stats['brochureLeads']) ?></strong>
             <p>Download enquiries captured from gated brochure access.</p>
         </article>
+        <article class="admin-summary-card">
+            <span>Orders</span>
+            <strong><?= esc((string) ($stats['ordersTotal'] ?? 0)) ?></strong>
+            <p><?= esc((string) ($stats['ordersPending'] ?? 0)) ?> awaiting fulfilment. <a href="/admin/orders">View all &rarr;</a></p>
+        </article>
     </section>
 
     <section class="admin-executive-grid">

@@ -230,7 +230,11 @@ class App extends BaseConfig
         $scheme = $isSecure ? 'https' : 'http';
 
         $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-        $basePath   = trim(dirname($scriptName), '/.');
+        // dirname() always returns the OS directory separator on Windows (e.g. "\"
+        // for a root-level script), even when given a forward-slash path — normalize
+        // it back to "/" before trimming, or the stray backslash ends up in every URL.
+        $basePath = str_replace('\\', '/', dirname($scriptName));
+        $basePath = trim($basePath, '/.');
 
         return $scheme . '://' . $host . ($basePath === '' ? '/' : '/' . $basePath . '/');
     }

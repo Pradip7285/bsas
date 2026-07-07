@@ -8,11 +8,14 @@ use App\Models\GalleryItemModel;
 use App\Models\ProductModel;
 use App\Models\QuoteRequestItemModel;
 use App\Models\QuoteRequestModel;
+use App\Traits\CartHelpers;
 use CodeIgniter\Controller;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 class Website extends Controller
 {
+    use CartHelpers;
+
     private array $data = [
         'company' => 'Bharat Spares & Services',
         'brand' => 'BSAS',
@@ -118,19 +121,53 @@ class Website extends Controller
     public function shop()
     {
         $query       = trim((string) $this->request->getGet('q'));
-        $category    = trim((string) $this->request->getGet('category'));
+        $categoryRaw = $this->request->getGet('category');
+        $categories  = is_array($categoryRaw) ? $categoryRaw : ($categoryRaw !== null && trim((string) $categoryRaw) !== '' ? [$categoryRaw] : []);
+        $categories  = array_values(array_unique(array_filter(array_map(static fn($c): string => trim((string) $c), $categories), static fn(string $c): bool => $c !== '')));
         $sort        = trim((string) $this->request->getGet('sort'));
         $page        = max(1, (int) ($this->request->getGet('page') ?? 1));
-        $inStockOnly = $this->request->getGet('stock') === 'in_stock';
+        $stockRaw    = $this->request->getGet('stock');
+        $stockStatuses = is_array($stockRaw) ? $stockRaw : ($stockRaw !== null && trim((string) $stockRaw) !== '' ? [$stockRaw] : []);
+        $stockStatuses = array_values(array_intersect(['in_stock', 'made_to_order', 'out_of_stock'], $stockStatuses));
+        $priceMinRaw = $this->request->getGet('price_min');
+        $priceMaxRaw = $this->request->getGet('price_max');
+        $priceMin    = is_numeric($priceMinRaw) ? (float) $priceMinRaw : null;
+        $priceMax    = is_numeric($priceMaxRaw) ? (float) $priceMaxRaw : null;
+        $featuredOnly = $this->request->getGet('featured') === '1';
+        $saleOnly    = $this->request->getGet('sale') === '1';
+        $vehicleRaw  = $this->request->getGet('vehicle');
+        $vehicleIds  = is_array($vehicleRaw) ? $vehicleRaw : ($vehicleRaw !== null && trim((string) $vehicleRaw) !== '' ? [$vehicleRaw] : []);
+        $vehicleIds  = array_values(array_unique(array_filter(array_map('intval', $vehicleIds), static fn(int $v): bool => $v > 0)));
+        $materialRaw = $this->request->getGet('material');
+        $materials   = is_array($materialRaw) ? $materialRaw : ($materialRaw !== null && trim((string) $materialRaw) !== '' ? [$materialRaw] : []);
+        $materials   = array_values(array_unique(array_filter(array_map(static fn($m): string => trim((string) $m), $materials), static fn(string $m): bool => $m !== '')));
+        $divisionRaw = $this->request->getGet('division');
+        $divisionIds = is_array($divisionRaw) ? $divisionRaw : ($divisionRaw !== null && trim((string) $divisionRaw) !== '' ? [$divisionRaw] : []);
+        $divisionIds = array_values(array_unique(array_filter(array_map('intval', $divisionIds), static fn(int $v): bool => $v > 0)));
+        $labelRaw    = $this->request->getGet('label');
+        $labelIds    = is_array($labelRaw) ? $labelRaw : ($labelRaw !== null && trim((string) $labelRaw) !== '' ? [$labelRaw] : []);
+        $labelIds    = array_values(array_unique(array_filter(array_map('intval', $labelIds), static fn(int $v): bool => $v > 0)));
         $perPage     = 100;
 
+        // Cascading OEM -> Vehicle sidebar step (the actual product filtering still
+        // happens via $vehicleIds above, unchanged). All other filters below stay
+        // visible the whole time — their counts just narrow once a vehicle is picked.
+        $oemRaw      = $this->request->getGet('oem');
+        $activeOemId = is_numeric($oemRaw) ? (int) $oemRaw : 0;
+        if ($activeOemId <= 0 && $vehicleIds !== []) {
+            // Deep link support: a vehicle[] param with no oem= (e.g. product page
+            // "Compatible Vehicles" tags) still resolves to the right OEM context.
+            $firstVehicle = $this->vehicleModel()->find($vehicleIds[0]);
+            $activeOemId  = (int) ($firstVehicle['oem_id'] ?? 0);
+        }
+
         // COUNT query — separate builder so state doesn't bleed into the data query.
-        $totalCount = $this->buildShopQuery($query, $category, $inStockOnly)->countAllResults();
+        $totalCount = $this->buildShopQuery($query, $categories, $stockStatuses, $priceMin, $priceMax, $featuredOnly, $saleOnly, $vehicleIds, $materials, $divisionIds, $labelIds)->countAllResults();
         $pageCount  = max(1, (int) ceil($totalCount / $perPage));
         $page       = min($page, $pageCount);
 
         // Data query with user-selected sort and pagination.
-        $dataBuilder = $this->buildShopQuery($query, $category, $inStockOnly);
+        $dataBuilder = $this->buildShopQuery($query, $categories, $stockStatuses, $priceMin, $priceMax, $featuredOnly, $saleOnly, $vehicleIds, $materials, $divisionIds, $labelIds);
 
         switch ($sort) {
             case 'name_desc':
@@ -146,33 +183,77 @@ class Website extends Controller
                 $dataBuilder->orderBy('name', 'ASC');
                 break;
 
+            case 'price_asc':
+                $dataBuilder->orderBy('price', 'ASC');
+                break;
+
+            case 'price_desc':
+                $dataBuilder->orderBy('price', 'DESC');
+                break;
+
             case 'name_asc':
             default:
+                // Matches the admin-curated ordering ProductModel::active() used to apply implicitly.
                 $sort = 'name_asc';
-                $dataBuilder->orderBy('name', 'ASC');
+                $dataBuilder->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC');
                 break;
         }
 
         $products          = $dataBuilder->findAll($perPage, ($page - 1) * $perPage);
-        $categorySummaries = $this->categorySummaries();
+        $products          = $this->attachLabelNames($products);
+        // Every summary below is scoped to $vehicleIds (when set) so Category/Price/
+        // Availability/Material/Division/Labels counts reflect the OEM/Vehicle step above.
+        $categorySummaries = $this->categorySummaries($vehicleIds);
+        $priceBounds       = $this->priceBounds($vehicleIds);
+        $oemSummaries      = $this->oemSummaries();
+        $vehiclesForSelectedOem = $activeOemId > 0 ? $this->vehicleModel()->vehiclesForOem($activeOemId) : [];
+        $stockStatusSummaries = $this->stockStatusSummaries($vehicleIds);
+        $materialSummaries    = $this->materialSummaries($vehicleIds);
+        $divisionSummaries    = $this->divisionSummaries($vehicleIds);
+        $labelSummaries       = $this->labelSummaries($vehicleIds);
+
+        // Canonical consolidates pagination/sort/search variants under the category URL.
+        // Keep only the category param — it changes genuine page content, unlike page/sort/q.
+        // Only canonicalize when exactly one category is selected (matches the pre-multi-select behavior).
+        $shopCanonical = count($categories) === 1
+            ? site_url('e-shop') . '?category=' . urlencode($categories[0])
+            : site_url('e-shop');
 
         return $this->page('shop', 'E-Shop', [
             'metaTitle'         => 'BSAS E-Shop | Rock Drill Spares, Hydraulics & Mining Parts',
             'metaDescription'   => 'Browse and request quotes for rock drill spares, hydraulic assemblies, drifters, and gearboxes. Fast sourcing for mining and construction fleets. BSAS India.',
+            'canonicalUrl'      => $shopCanonical,
             'products'          => $products,
             'categories'        => array_column($categorySummaries, 'name'),
             'categorySummaries' => $categorySummaries,
             'searchQuery'       => $query,
-            'activeCategory'    => $category,
+            'activeCategories'  => $categories,
+            'activeCategory'    => $categories[0] ?? '',
             'activeSort'        => $sort,
-            'inStockOnly'       => $inStockOnly,
+            'stockStatusSummaries' => $stockStatusSummaries,
+            'activeStockStatuses'  => $stockStatuses,
+            'priceMin'          => $priceMin,
+            'priceMax'          => $priceMax,
+            'priceBounds'       => $priceBounds,
+            'featuredOnly'      => $featuredOnly,
+            'saleOnly'          => $saleOnly,
+            'oemSummaries'      => $oemSummaries,
+            'activeOemId'       => $activeOemId,
+            'vehiclesForSelectedOem' => $vehiclesForSelectedOem,
+            'activeVehicleIds'  => $vehicleIds,
+            'materialSummaries' => $materialSummaries,
+            'activeMaterials'   => $materials,
+            'divisionSummaries' => $divisionSummaries,
+            'activeDivisionIds' => $divisionIds,
+            'labelSummaries'    => $labelSummaries,
+            'activeLabelIds'    => $labelIds,
             'cartCount'         => $this->cartCount(),
             'resultCount'       => $totalCount,
             'page'              => $page,
             'pageCount'         => $pageCount,
             'perPage'           => $perPage,
             'totalProducts'     => array_sum(array_column($categorySummaries, 'count')),
-            'filterSummary'     => $this->shopFilterSummary($query, $category, $inStockOnly),
+            'filterSummary'     => $this->shopFilterSummary($query, $categories, $stockStatuses, $priceMin, $priceMax, $featuredOnly, $saleOnly, $vehicleIds, $materials, $divisionIds, $labelIds),
             'active'            => 'shop',
         ]);
     }
@@ -191,6 +272,14 @@ class Website extends Controller
             ->where('id !=', $product['id'])
             ->findAll(3);
 
+        $compatibleVehicles = db_connect()->query(
+            'SELECT v.id, v.name, v.slug FROM vehicles v
+             INNER JOIN product_vehicles pv ON pv.vehicle_id = v.id
+             WHERE pv.product_id = ? AND v.is_active = 1
+             ORDER BY v.name ASC',
+            [$product['id']]
+        )->getResultArray();
+
         $productDesc = trim((string) ($product['short_description'] ?? ''));
         if ($productDesc === '') {
             $productDesc = 'View specifications, compatibility, and request a quote for ' . $product['name'] . '. Sourced and validated by BSAS engineering for mining and construction equipment.';
@@ -204,13 +293,22 @@ class Website extends Controller
         };
 
         $productUrl = site_url('e-shop/product/' . $product['slug']);
+
+        // Stored SEO overrides win when set; otherwise keep the auto-generated values below.
+        $metaTitle       = trim((string) ($product['meta_title'] ?? '')) ?: ($product['name'] . ' | BSAS E-Shop');
+        $metaDescription = trim((string) ($product['meta_description'] ?? '')) ?: mb_strimwidth($productDesc, 0, 160, '…');
+        $canonicalUrl    = trim((string) ($product['canonical_url'] ?? '')) ?: $productUrl;
+        $ogImage         = trim((string) ($product['og_image'] ?? '')) ?: ($product['image_url'] ?? base_url('assets/images/photo1.webp'));
+        $metaRobots      = trim((string) ($product['robots_meta'] ?? '')) ?: 'index, follow';
+        $structuredType  = trim((string) ($product['structured_data_type'] ?? '')) ?: 'Product';
+
         $jsonLd = json_encode([
             '@context' => 'https://schema.org',
             '@graph'   => [
                 [
-                    '@type'       => 'Product',
+                    '@type'       => $structuredType,
                     'name'        => $product['name'],
-                    'image'       => $product['image_url'] ?? base_url('assets/images/photo1.webp'),
+                    'image'       => $ogImage,
                     'description' => mb_strimwidth($productDesc, 0, 300, '…'),
                     'sku'         => $product['sku'] ?? $product['slug'],
                     'mpn'         => $product['part_number'] ?? null,
@@ -237,15 +335,18 @@ class Website extends Controller
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         return $this->page('product-detail', $product['name'], [
-            'metaTitle'       => $product['name'] . ' | BSAS E-Shop',
-            'metaDescription' => mb_strimwidth($productDesc, 0, 160, '…'),
+            'metaTitle'       => $metaTitle,
+            'metaDescription' => $metaDescription,
+            'metaRobots'      => $metaRobots,
+            'canonicalUrl'    => $canonicalUrl,
             'ogType'          => 'product',
-            'ogImage'         => $product['image_url'] ?? base_url('assets/images/photo1.webp'),
+            'ogImage'         => $ogImage,
             'jsonLd'          => $jsonLd,
-            'product'         => $product,
-            'relatedProducts' => $related,
-            'cartCount'       => $this->cartCount(),
-            'active'          => 'shop',
+            'product'            => $product,
+            'relatedProducts'    => $related,
+            'compatibleVehicles' => $compatibleVehicles,
+            'cartCount'          => $this->cartCount(),
+            'active'             => 'shop',
         ]);
     }
 
@@ -409,16 +510,13 @@ class Website extends Controller
             return redirect()->back()->with('error', 'The selected product is no longer available.');
         }
 
-        $cart = $this->sessionCart();
-        $productId = (string) $product['id'];
         $quantity = max(1, (int) $this->request->getPost('quantity'));
-        $cart[$productId] = ($cart[$productId] ?? 0) + $quantity;
-        session()->set('cart', $cart);
+        $this->addToCartStorage((int) $product['id'], $quantity);
 
         if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
             return $this->response->setJSON([
                 'success'     => true,
-                'cartCount'   => array_sum($cart),
+                'cartCount'   => $this->cartCount(),
                 'productName' => $product['name'],
             ]);
         }
@@ -431,16 +529,7 @@ class Website extends Controller
     public function updateCart()
     {
         $quantities = $this->request->getPost('quantities') ?? [];
-        $cart = [];
-
-        foreach ($quantities as $productId => $quantity) {
-            $quantity = (int) $quantity;
-            if ($quantity > 0) {
-                $cart[(string) $productId] = $quantity;
-            }
-        }
-
-        session()->set('cart', $cart);
+        $this->updateCartStorage($quantities);
         session()->setFlashdata('success', 'Cart updated.');
 
         return redirect()->to('/cart');
@@ -448,10 +537,7 @@ class Website extends Controller
 
     public function removeFromCart()
     {
-        $productId = (string) $this->request->getPost('product_id');
-        $cart = $this->sessionCart();
-        unset($cart[$productId]);
-        session()->set('cart', $cart);
+        $this->removeFromCartStorage((int) $this->request->getPost('product_id'));
         session()->setFlashdata('success', 'Item removed from cart.');
 
         return redirect()->to('/cart');
@@ -673,7 +759,7 @@ class Website extends Controller
                 ->with('error', 'Unable to submit the cart quote request right now. Please try again.');
         }
 
-        session()->remove('cart');
+        $this->clearCartStorage();
         session()->setFlashdata('success', 'Your cart quote request has been submitted.');
 
         return redirect()->to('/cart');
@@ -824,6 +910,11 @@ class Website extends Controller
         return new ProductModel();
     }
 
+    private function vehicleModel(): \App\Models\VehicleModel
+    {
+        return new \App\Models\VehicleModel();
+    }
+
     private function galleryAlbumModel(): GalleryAlbumModel
     {
         return new GalleryAlbumModel();
@@ -849,52 +940,28 @@ class Website extends Controller
         return new BrochureLeadModel();
     }
 
-    private function sessionCart(): array
-    {
-        return session()->get('cart') ?? [];
-    }
-
-    private function cartCount(): int
-    {
-        return array_sum($this->sessionCart());
-    }
-
-    private function cartItems(): array
-    {
-        $cart = $this->sessionCart();
-        if ($cart === []) {
-            return [];
-        }
-
-        $products = $this->products()->whereIn('id', array_map('intval', array_keys($cart)))->findAll();
-        $indexed = [];
-
-        foreach ($products as $product) {
-            $indexed[(string) $product['id']] = $product;
-        }
-
-        $items = [];
-        foreach ($cart as $productId => $quantity) {
-            if (! isset($indexed[$productId])) {
-                continue;
-            }
-
-            $items[] = [
-                'product' => $indexed[$productId],
-                'quantity' => (int) $quantity,
-            ];
-        }
-
-        return $items;
-    }
-
     /** Returns a ProductModel builder with search/filter conditions applied. */
-    private function buildShopQuery(string $query, string $category, bool $inStockOnly = false): ProductModel
-    {
-        $builder = $this->products()->active();
+    private function buildShopQuery(
+        string $query,
+        array $categories = [],
+        array $stockStatuses = [],
+        ?float $priceMin = null,
+        ?float $priceMax = null,
+        bool $featuredOnly = false,
+        bool $saleOnly = false,
+        array $vehicleIds = [],
+        array $materials = [],
+        array $divisionIds = [],
+        array $labelIds = []
+    ): ProductModel {
+        // Deliberately not using ProductModel::active() here — it bakes in
+        // ORDER BY sort_order, name, which would outrank whatever sort the
+        // caller applies below (price, name desc, etc. would silently have no
+        // effect once sort_order/name already fully order the result set).
+        $builder = $this->products()->where('is_active', 1);
 
-        if ($inStockOnly) {
-            $builder->where('stock_status', 'in_stock');
+        if ($stockStatuses !== []) {
+            $builder->whereIn('stock_status', $stockStatuses);
         }
 
         if ($query !== '') {
@@ -903,14 +970,236 @@ class Website extends Controller
                 ->orLike('sku', $query)
                 ->orLike('short_description', $query)
                 ->orLike('description', $query)
+                ->orLike('meta_keyword', $query)
                 ->groupEnd();
         }
 
-        if ($category !== '') {
-            $builder->where('category', $category);
+        if ($categories !== []) {
+            $builder->whereIn('category', $categories);
+        }
+
+        if ($priceMin !== null) {
+            $builder->where('price >=', $priceMin);
+        }
+
+        if ($priceMax !== null) {
+            $builder->where('price <=', $priceMax);
+        }
+
+        if ($featuredOnly) {
+            $builder->where('is_featured', 1);
+        }
+
+        if ($saleOnly) {
+            $builder->where('compare_at_price IS NOT NULL', null, false)
+                ->where('compare_at_price > price', null, false);
+        }
+
+        if ($vehicleIds !== []) {
+            $productIds = array_column(
+                db_connect()->query(
+                    'SELECT DISTINCT product_id FROM product_vehicles WHERE vehicle_id IN (' . implode(',', array_map('intval', $vehicleIds)) . ')'
+                )->getResultArray(),
+                'product_id'
+            );
+            $builder->whereIn('id', $productIds !== [] ? $productIds : [0]);
+        }
+
+        if ($materials !== []) {
+            $builder->whereIn('material', $materials);
+        }
+
+        if ($divisionIds !== []) {
+            $categoryIds = array_column(
+                db_connect()->query(
+                    'SELECT id FROM categories WHERE division_id IN (' . implode(',', array_map('intval', $divisionIds)) . ')'
+                )->getResultArray(),
+                'id'
+            );
+            $builder->whereIn('category_id', $categoryIds !== [] ? $categoryIds : [0]);
+        }
+
+        if ($labelIds !== []) {
+            $productIds = array_column(
+                db_connect()->query(
+                    'SELECT DISTINCT product_id FROM product_labels WHERE label_id IN (' . implode(',', array_map('intval', $labelIds)) . ')'
+                )->getResultArray(),
+                'product_id'
+            );
+            $builder->whereIn('id', $productIds !== [] ? $productIds : [0]);
         }
 
         return $builder;
+    }
+
+    /** Attaches a `labels` array (label names) to each product row, batched in one query. */
+    private function attachLabelNames(array $products): array
+    {
+        $ids = array_column($products, 'id');
+        if ($ids === []) {
+            return $products;
+        }
+
+        $rows = db_connect()->query(
+            'SELECT pl.product_id, l.name FROM product_labels pl
+             INNER JOIN labels l ON l.id = pl.label_id
+             WHERE pl.product_id IN (' . implode(',', array_map('intval', $ids)) . ')'
+        )->getResultArray();
+
+        $byProduct = [];
+        foreach ($rows as $row) {
+            $byProduct[(int) $row['product_id']][] = $row['name'];
+        }
+
+        foreach ($products as &$product) {
+            $product['labels'] = $byProduct[(int) $product['id']] ?? [];
+        }
+
+        return $products;
+    }
+
+    /**
+     * SQL fragment restricting a products query to only those linked (via product_vehicles)
+     * to one of the given vehicle IDs. Empty string when no vehicle is selected.
+     */
+    private function vehicleScopeSql(array $vehicleIds, string $column = 'id'): string
+    {
+        if ($vehicleIds === []) {
+            return '';
+        }
+
+        return ' AND ' . $column . ' IN (SELECT DISTINCT product_id FROM product_vehicles WHERE vehicle_id IN ('
+            . implode(',', array_map('intval', $vehicleIds)) . '))';
+    }
+
+    /** Min/max price across active, orderable (price > 0) products — used for the sidebar range hint. */
+    private function priceBounds(array $vehicleIds = []): array
+    {
+        $row = db_connect()->query(
+            'SELECT MIN(price) AS min_price, MAX(price) AS max_price FROM products WHERE is_active = 1 AND price > 0'
+            . $this->vehicleScopeSql($vehicleIds)
+        )->getRowArray();
+
+        return [
+            'min' => (float) ($row['min_price'] ?? 0),
+            'max' => (float) ($row['max_price'] ?? 0),
+        ];
+    }
+
+    /** Product counts per stock status, active products only, in a fixed display order. */
+    private function stockStatusSummaries(array $vehicleIds = []): array
+    {
+        $rows = db_connect()->query("
+            SELECT stock_status, COUNT(*) AS cnt
+            FROM products
+            WHERE is_active = 1
+        " . $this->vehicleScopeSql($vehicleIds) . "
+            GROUP BY stock_status
+        ")->getResultArray();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['stock_status']] = (int) $row['cnt'];
+        }
+
+        $labels = [
+            'in_stock'      => 'In Stock',
+            'made_to_order' => 'Made to Order',
+            'out_of_stock'  => 'Out of Stock',
+        ];
+
+        $summaries = [];
+        foreach ($labels as $value => $label) {
+            if (($counts[$value] ?? 0) > 0) {
+                $summaries[] = ['value' => $value, 'label' => $label, 'count' => $counts[$value]];
+            }
+        }
+
+        return $summaries;
+    }
+
+    /** Distinct materials (name + product count) across active products, alphabetical. */
+    private function materialSummaries(array $vehicleIds = []): array
+    {
+        $rows = db_connect()->query("
+            SELECT material AS name, COUNT(*) AS cnt
+            FROM products
+            WHERE is_active = 1 AND material IS NOT NULL AND material <> ''
+        " . $this->vehicleScopeSql($vehicleIds) . "
+            GROUP BY material
+            HAVING COUNT(*) > 0
+            ORDER BY material ASC
+        ")->getResultArray();
+
+        return array_map(
+            static fn(array $r): array => ['name' => (string) $r['name'], 'count' => (int) $r['cnt']],
+            $rows
+        );
+    }
+
+    /** Division summaries (id + name + product count via each division's categories), active only. */
+    private function divisionSummaries(array $vehicleIds = []): array
+    {
+        $rows = db_connect()->query("
+            SELECT d.id, d.name, COUNT(p.id) AS cnt
+            FROM divisions d
+            INNER JOIN categories c ON c.division_id = d.id
+            LEFT JOIN products p ON p.category_id = c.id AND p.is_active = 1
+        " . $this->vehicleScopeSql($vehicleIds, 'p.id') . "
+            WHERE d.is_active = 1
+            GROUP BY d.id, d.name, d.sort_order
+            HAVING COUNT(p.id) > 0
+            ORDER BY d.sort_order ASC, d.name ASC
+        ")->getResultArray();
+
+        return array_map(
+            static fn(array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name'], 'count' => (int) $r['cnt']],
+            $rows
+        );
+    }
+
+    /** Label summaries (id + name + product count via the product_labels pivot), active only. */
+    private function labelSummaries(array $vehicleIds = []): array
+    {
+        $rows = db_connect()->query("
+            SELECT l.id, l.name, COUNT(pl.product_id) AS cnt
+            FROM labels l
+            INNER JOIN product_labels pl ON pl.label_id = l.id
+            INNER JOIN products p ON p.id = pl.product_id AND p.is_active = 1
+        " . $this->vehicleScopeSql($vehicleIds, 'p.id') . "
+            WHERE l.is_active = 1
+            GROUP BY l.id, l.name, l.sort_order
+            HAVING COUNT(pl.product_id) > 0
+            ORDER BY l.sort_order ASC, l.name ASC
+        ")->getResultArray();
+
+        return array_map(
+            static fn(array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name'], 'count' => (int) $r['cnt']],
+            $rows
+        );
+    }
+
+    /**
+     * OEM summaries (id + name + product count reachable through that OEM's vehicles),
+     * active only. Used for the storefront's cascading OEM -> Vehicle filter step.
+     */
+    private function oemSummaries(): array
+    {
+        $rows = db_connect()->query("
+            SELECT o.id, o.name, COUNT(DISTINCT pv.product_id) AS cnt
+            FROM oems o
+            INNER JOIN vehicles v ON v.oem_id = o.id AND v.is_active = 1
+            LEFT JOIN product_vehicles pv ON pv.vehicle_id = v.id
+            WHERE o.is_active = 1
+            GROUP BY o.id, o.name, o.sort_order
+            HAVING COUNT(DISTINCT pv.product_id) > 0
+            ORDER BY o.sort_order ASC, o.name ASC
+        ")->getResultArray();
+
+        return array_map(
+            static fn(array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name'], 'count' => (int) $r['cnt']],
+            $rows
+        );
     }
 
     /**
@@ -919,7 +1208,7 @@ class Website extends Controller
      * Falls back to a product-only aggregation if the categories table isn't migrated yet.
      * The caller derives the category name list with array_column($result, 'name').
      */
-    private function categorySummaries(): array
+    private function categorySummaries(array $vehicleIds = []): array
     {
         $db = db_connect();
 
@@ -929,6 +1218,7 @@ class Website extends Controller
                 SELECT c.name, COUNT(p.id) AS `count`
                 FROM categories c
                 LEFT JOIN products p ON p.category = c.name AND p.is_active = 1
+            " . $this->vehicleScopeSql($vehicleIds, 'p.id') . "
                 WHERE c.is_active = 1
                 GROUP BY c.id, c.name, c.sort_order
                 HAVING COUNT(p.id) > 0
@@ -941,6 +1231,7 @@ class Website extends Controller
                 FROM products
                 WHERE is_active = 1
                 AND category NOT IN (SELECT name FROM categories WHERE is_active = 1)
+            " . $this->vehicleScopeSql($vehicleIds) . "
                 GROUP BY category
                 HAVING COUNT(*) > 0
                 ORDER BY category ASC
@@ -956,6 +1247,7 @@ class Website extends Controller
                 SELECT category AS name, COUNT(*) AS `count`
                 FROM products
                 WHERE is_active = 1
+            " . $this->vehicleScopeSql($vehicleIds) . "
                 GROUP BY category
                 HAVING COUNT(*) > 0
                 ORDER BY category ASC
@@ -968,24 +1260,82 @@ class Website extends Controller
         }
     }
 
-    private function shopFilterSummary(string $query, string $category, bool $inStockOnly = false): string
-    {
-        $stockSuffix = $inStockOnly ? ' (in-stock only)' : '';
+    private function shopFilterSummary(
+        string $query,
+        array $categories = [],
+        array $stockStatuses = [],
+        ?float $priceMin = null,
+        ?float $priceMax = null,
+        bool $featuredOnly = false,
+        bool $saleOnly = false,
+        array $vehicleIds = [],
+        array $materials = [],
+        array $divisionIds = [],
+        array $labelIds = []
+    ): string {
+        $category = $categories !== [] ? implode(', ', $categories) : '';
+
+        $extras = [];
+        if ($stockStatuses !== []) {
+            $stockLabels = ['in_stock' => 'in stock', 'made_to_order' => 'made to order', 'out_of_stock' => 'out of stock'];
+            $extras[] = implode('/', array_map(static fn(string $s): string => $stockLabels[$s] ?? $s, $stockStatuses));
+        }
+        if ($materials !== []) {
+            $extras[] = implode(', ', $materials) . ' material';
+        }
+        if ($divisionIds !== []) {
+            $names = array_column(
+                db_connect()->query('SELECT name FROM divisions WHERE id IN (' . implode(',', array_map('intval', $divisionIds)) . ')')->getResultArray(),
+                'name'
+            );
+            if ($names !== []) {
+                $extras[] = implode(', ', $names) . ' division';
+            }
+        }
+        if ($labelIds !== []) {
+            $names = array_column(
+                db_connect()->query('SELECT name FROM labels WHERE id IN (' . implode(',', array_map('intval', $labelIds)) . ')')->getResultArray(),
+                'name'
+            );
+            if ($names !== []) {
+                $extras[] = implode(', ', $names) . ' label';
+            }
+        }
+        if ($vehicleIds !== []) {
+            $names = array_column($this->vehicleModel()->whereIn('id', $vehicleIds)->findAll(), 'name');
+            if ($names !== []) {
+                $extras[] = 'fits ' . implode(', ', $names);
+            }
+        }
+        if ($priceMin !== null || $priceMax !== null) {
+            $extras[] = match (true) {
+                $priceMin !== null && $priceMax !== null => '₹' . number_format($priceMin, 0) . '–₹' . number_format($priceMax, 0),
+                $priceMin !== null => 'over ₹' . number_format($priceMin, 0),
+                default             => 'under ₹' . number_format($priceMax, 0),
+            };
+        }
+        if ($featuredOnly) {
+            $extras[] = 'featured';
+        }
+        if ($saleOnly) {
+            $extras[] = 'on sale';
+        }
+        $extraSuffix = $extras !== [] ? ' (' . implode(', ', $extras) . ')' : '';
 
         if ($query !== '' && $category !== '') {
-            return 'Showing matches for "' . $query . '" in ' . $category . $stockSuffix . '.';
+            return 'Showing matches for "' . $query . '" in ' . $category . $extraSuffix . '.';
         }
 
         if ($query !== '') {
-            return 'Showing matches for "' . $query . '" across the full catalogue' . $stockSuffix . '.';
+            return 'Showing matches for "' . $query . '" across the full catalogue' . $extraSuffix . '.';
         }
 
         if ($category !== '') {
-            return 'Showing all products in ' . $category . $stockSuffix . '.';
+            return 'Showing all products in ' . $category . $extraSuffix . '.';
         }
 
-        if ($inStockOnly) {
-            return 'Showing in-stock products across the full catalogue.';
+        if ($extras !== []) {
+            return 'Showing products across the full catalogue' . $extraSuffix . '.';
         }
 
         return 'Browse the full BSAS catalogue and shortlist products for a consolidated quote request.';

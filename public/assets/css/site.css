@@ -662,6 +662,15 @@ body.mobile-nav-open {
   transform: translateY(-3px);
 }
 
+.customer-card img {
+  filter: grayscale(1);
+  transition: filter 0.3s ease;
+}
+
+.customer-card:hover img {
+  filter: grayscale(0);
+}
+
 .customer-card p {
   color: #444;
   font-size: 11px;

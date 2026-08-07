@@ -88,7 +88,7 @@
         </div>
         <div class="products-nav">
             <button class="carousel-btn prev" title="Previous">&#8249;</button>
-            <span class="carousel-status">1 of 4</span>
+            <span class="carousel-status">1 of 7</span>
             <button class="carousel-btn next" title="Next">&#8250;</button>
         </div>
     </div>
@@ -96,6 +96,38 @@
     <div class="carousel">
         <div class="product-card">
             <div class="product-card-img bg-parts">
+                <svg class="card-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="24" width="24" height="16" rx="2" stroke="currentColor" stroke-width="3"/>
+                    <rect x="40" y="29" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="3"/>
+                    <path d="M48 32 L56 32" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M22 24 L22 14 Q22 10 26 10 L30 10 Q34 10 34 14 L34 24" stroke="currentColor" stroke-width="3"/>
+                    <path d="M16 46 L40 46 M20 46 L20 52 M36 46 L36 52" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="product-card-body">
+                <h3>Engine Spares</h3>
+                <p>Pistons, gaskets, bearings, and rebuild kits for diesel and multi-fuel engines.</p>
+                <a href="/e-shop?category=Engine+Spares" class="btn">Shop Now &rarr;</a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-card-img bg-equip">
+                <svg class="card-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="32" cy="32" r="12" stroke="currentColor" stroke-width="3"/>
+                    <circle cx="32" cy="32" r="4" fill="currentColor"/>
+                    <path d="M32 8 L32 16 M32 48 L32 56 M8 32 L16 32 M48 32 L56 32" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M14.1 14.1 L19.8 19.8 M44.2 44.2 L49.9 49.9 M49.9 14.1 L44.2 19.8 M19.8 44.2 L14.1 49.9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="32" cy="32" r="20" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"/>
+                </svg>
+            </div>
+            <div class="product-card-body">
+                <h3>Powertrain Spares</h3>
+                <p>Transmission, axle, and driveline components built for continuous heavy-duty operation.</p>
+                <a href="/e-shop?category=Powertrain+Spares" class="btn">Shop Now &rarr;</a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-card-img bg-workshop">
                 <svg class="card-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="32" cy="32" r="14" stroke="currentColor" stroke-width="3"/>
                     <circle cx="32" cy="32" r="5" fill="currentColor"/>
@@ -110,9 +142,25 @@
                 </svg>
             </div>
             <div class="product-card-body">
-                <h3>Rock Drill Spares</h3>
+                <h3>Rockdrill Spares</h3>
                 <p>Complete ranges for drifters, booms, feed systems, service kits, and refurbished assemblies.</p>
-                <a href="/e-shop?category=Rock+Drill+Spares" class="btn">Shop Now &rarr;</a>
+                <a href="/e-shop?category=Rockdrill+Spares" class="btn">Shop Now &rarr;</a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-card-img bg-spare">
+                <svg class="card-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="26" y="8" width="12" height="48" rx="4" stroke="currentColor" stroke-width="3"/>
+                    <rect x="20" y="20" width="24" height="6" rx="2" stroke="currentColor" stroke-width="2.5"/>
+                    <rect x="20" y="38" width="24" height="6" rx="2" stroke="currentColor" stroke-width="2.5"/>
+                    <path d="M26 8 L20 2 M38 8 L44 2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M26 56 L20 62 M38 56 L44 62" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="product-card-body">
+                <h3>Feed &amp; Boom Spares</h3>
+                <p>Feed cylinders, boom pins, and structural components for drill rig positioning systems.</p>
+                <a href="/e-shop?category=Feed+%26+Boom+Spares" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
         <div class="product-card">
@@ -128,42 +176,38 @@
                 </svg>
             </div>
             <div class="product-card-body">
-                <h3>Hydraulic Pumps and Motors</h3>
-                <p>Engineered hydraulic assemblies for underground loaders, dump trucks, and drilling equipment.</p>
-                <a href="/e-shop?category=Hydraulic+Pumps+and+Motors" class="btn">Shop Now &rarr;</a>
+                <h3>General Hydraulic Spares</h3>
+                <p>Pumps, motors, cylinders, valves, and seals for hydraulic systems across equipment lines.</p>
+                <a href="/e-shop?category=General+Hydraulic+Spares" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
         <div class="product-card">
             <div class="product-card-img bg-workshop">
                 <svg class="card-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="26" y="8" width="12" height="48" rx="4" stroke="currentColor" stroke-width="3"/>
-                    <rect x="20" y="20" width="24" height="6" rx="2" stroke="currentColor" stroke-width="2.5"/>
-                    <rect x="20" y="38" width="24" height="6" rx="2" stroke="currentColor" stroke-width="2.5"/>
-                    <path d="M26 8 L20 2 M38 8 L44 2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                    <path d="M26 56 L20 62 M38 56 L44 62" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M32 8 C40 16 48 24 48 34 A16 16 0 0 1 16 34 C16 24 24 16 32 8Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+                    <path d="M26 34 C26 29 29 26 32 22 C35 26 38 29 38 34 A6 6 0 0 1 26 34Z" stroke="currentColor" stroke-width="2.5"/>
                 </svg>
             </div>
             <div class="product-card-body">
-                <h3>Drifters and Feed Assemblies</h3>
-                <p>High-performance components designed for exploration, production drilling, and rebuild programs.</p>
-                <a href="/e-shop?category=Drifters+and+Feed+Assemblies" class="btn">Shop Now &rarr;</a>
+                <h3>Thermal Covers</h3>
+                <p>Engineered heat-protection covers safeguarding critical components in high-temperature zones.</p>
+                <a href="/e-shop?category=Thermal+Covers" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
         <div class="product-card">
-            <div class="product-card-img bg-service">
+            <div class="product-card-img bg-parts">
                 <svg class="card-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="32" cy="32" r="12" stroke="currentColor" stroke-width="3"/>
-                    <circle cx="32" cy="32" r="4" fill="currentColor"/>
-                    <path d="M20 32 Q20 20 32 20 Q44 20 44 32 Q44 44 32 44 Q20 44 20 32" stroke="none"/>
-                    <path d="M32 8 L32 16 M32 48 L32 56 M8 32 L16 32 M48 32 L56 32" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-                    <path d="M14.1 14.1 L19.8 19.8 M44.2 44.2 L49.9 49.9 M49.9 14.1 L44.2 19.8 M19.8 44.2 L14.1 49.9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-                    <circle cx="32" cy="32" r="20" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"/>
+                    <path d="M10 44 L54 44 L54 50 Q54 54 50 54 L14 54 Q10 54 10 50 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+                    <path d="M16 44 L20 24 Q21 20 25 20 L39 20 Q43 20 44 24 L48 44" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+                    <circle cx="24" cy="49" r="2" fill="currentColor"/>
+                    <circle cx="32" cy="49" r="2" fill="currentColor"/>
+                    <circle cx="40" cy="49" r="2" fill="currentColor"/>
                 </svg>
             </div>
             <div class="product-card-body">
-                <h3>Gearbox and Transmission</h3>
-                <p>Rebuild-ready driveline components and complete assemblies for heavy machinery fleets.</p>
-                <a href="/e-shop?category=Gearbox+and+Transmission" class="btn">Shop Now &rarr;</a>
+                <h3>Concrete Touching Spares</h3>
+                <p>Wear-resistant components engineered for direct contact with concrete and abrasive material.</p>
+                <a href="/e-shop?category=Concrete+Touching+Spares" class="btn">Shop Now &rarr;</a>
             </div>
         </div>
     </div>

@@ -437,39 +437,51 @@ document.querySelectorAll('a[href="#"]').forEach(function (link) {
 
     var testimonials = [
         {
-            quote: 'Engineered support for loaders operating in confined underground conditions with high-duty hydraulic and feed-system demands.',
-            name: 'Underground LHD Loaders',
+            quote: 'Engineered spare parts compatible with Sandvik LH307, LH410, LH517 and Epiroc Scooptram ST2D, ST3.5 underground LHD loaders. Covering hydraulic systems, transmissions, axles, brakes, engines, cooling, filtration, electrical systems, wear components, and structural assemblies for reliable underground loading and haulage applications.',
+            name: 'Underground Loader LHDs',
             designation: 'Underground mining',
             src: '/assets/images/photo1.webp'
         },
         {
-            quote: 'Built around heavy-haul applications where drivetrain, braking, and hydraulic uptime directly affect production continuity.',
-            name: 'Dump Trucks',
-            designation: 'Mining and construction',
+            quote: 'Aftermarket spare parts compatible with Sandvik TH330, TH430, TH663, Epiroc MT2010, MT436B, and Caterpillar AD30 underground haul trucks (LPDTs). Supporting engine, transmission, axle, suspension, braking, hydraulic, cooling, electrical, filtration, and drivetrain systems for demanding underground mining environments.',
+            name: 'Underground Trucks LPDTs',
+            designation: 'Underground haulage',
             src: '/assets/images/photo2.webp'
         },
         {
-            quote: 'Compatible with exploration and production drilling setups that require precision spares, feed assemblies, and rebuild support.',
-            name: 'Drilling Rigs',
-            designation: 'Exploration and production',
+            quote: 'Compatible aftermarket spare parts and engineered components for Sandvik DD310, DD311, DD320, DD321, DD421, DD2710 and Epiroc S1D, E2C, L2C, L2D, M2C, M2D, 282 underground drill rigs. Supporting hydraulic drifters, feed systems, booms, rock drills, rotation units, electrical, cooling, filtration, and structural components for underground mining operations.',
+            name: 'Underground Drills',
+            designation: 'Exploration and drilling',
             src: '/assets/images/photo1.webp'
         },
         {
-            quote: 'Configured for continuous-use logistics and port handling equipment where motion systems and service responsiveness are critical.',
-            name: 'Port Equipment',
-            designation: 'Ports and logistics',
+            quote: 'Compatible spare parts for Normet Agitator LF600, Multimec MF100, MF328, MF540, and Scamec 2000M underground utility vehicles. Supporting hydraulic, engine, transmission, steering, braking, electrical, filtration, cooling, and chassis components for efficient underground maintenance and logistics operations.',
+            name: 'Utility Vehicles',
+            designation: 'Underground logistics',
             src: '/assets/images/photo2.webp'
         },
         {
-            quote: 'Suited for infrastructure fleets that rely on reliable hydraulic, transmission, and wear-component performance on site.',
-            name: 'Construction Machinery',
-            designation: 'Infrastructure and earthworks',
+            quote: 'Engineered replacement parts compatible with Komatsu PC210 and Volvo EC480D excavators. Supporting hydraulic pumps, cylinders, swing systems, undercarriage, engine, cooling, filtration, electrical, and structural components for mining, construction, and earthmoving applications.',
+            name: 'Excavators',
+            designation: 'Construction and earthmoving',
             src: '/assets/images/photo1.webp'
         },
         {
-            quote: 'Adapted for support vehicles and mobile field assets where rugged serviceability and dependable component life matter most.',
-            name: 'Surface Support Equipment',
-            designation: 'Service and field operations',
+            quote: 'Compatible replacement parts for Normet Spraymec 8100, Spraymec 5100, Spraymec LF050, Sany 3217, Putzmeister SPM500, SPM4210, and Normet Alfa 1430 shotcrete machines. Covering concrete pumping, spraying, hydraulic, electrical, wear, pumping, cooling, and control system components for mining and tunnelling applications.',
+            name: 'Shotcrete Equipment',
+            designation: 'Mining and tunnelling',
+            src: '/assets/images/photo2.webp'
+        },
+        {
+            quote: 'Compatible aftermarket spare parts for Komatsu D65 and D85 crawler dozers. Covering undercarriage, hydraulic systems, powertrain, transmission, steering, engine, cooling, filtration, electrical, and structural components for heavy-duty earthmoving operations.',
+            name: 'Dozers',
+            designation: 'Heavy-duty earthmoving',
+            src: '/assets/images/photo1.webp'
+        },
+        {
+            quote: 'Engineered spare parts compatible with Komatsu HD785-5, HD785-7 and Volvo A45G off-highway mining trucks. Supporting engine, transmission, differential, axle, suspension, braking, hydraulic, cooling, electrical, filtration, and structural systems for high-productivity mining haulage.',
+            name: 'Off-Highway Trucks',
+            designation: 'Mining haulage',
             src: '/assets/images/photo2.webp'
         }
     ];

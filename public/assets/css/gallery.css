@@ -166,11 +166,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform .45s ease;
+  filter: grayscale(1);
+  transition: transform .45s ease, filter .45s ease;
 }
 
 .gallery-album-directory__card:hover .gallery-album-directory__media img {
   transform: scale(1.04);
+  filter: grayscale(0);
 }
 
 .gallery-album-directory__overlay {
